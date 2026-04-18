@@ -3,6 +3,7 @@ package com.investigator.automaton;
 import com.investigator.vsa.HDVector;
 import com.investigator.vsa.HDVectorMapB;
 import com.investigator.vsa.ItemMemory;
+import java.util.List;
 
 public class AssociationMatrix {
 
@@ -35,5 +36,27 @@ public class AssociationMatrix {
 
     public ItemMemory getCleanUpMemory() {
         return cleanUpMemory;
+    }
+
+    public void computeAnalogicalW(List<HDVector> sourceTriples, List<HDVector> targetTriples) {
+        HDVector w_acc = null;
+        int crossCount = 0;
+
+        for (HDVector sTriple : sourceTriples) {
+            for (HDVector tTriple : targetTriples) {
+                HDVector crossProduct = sTriple.bind(tTriple);
+                if (w_acc == null) {
+                    w_acc = crossProduct;
+                } else {
+                    w_acc = w_acc.bundle(crossProduct);
+                }
+                crossCount++;
+            }
+        }
+
+        if (w_acc != null) {
+            this.w = w_acc;
+            this.tripleCount = crossCount;
+        }
     }
 }

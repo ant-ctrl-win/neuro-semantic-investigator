@@ -7,9 +7,7 @@ import com.investigator.vsa.strategy.TopologicalVectorUpdater;
 import com.investigator.automaton.SemanticNode;
 import com.investigator.jena.GraphManager;
 import com.investigator.jena.TripleExtractor;
-import java.util.Map;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
@@ -20,6 +18,9 @@ public class InvestigationEngine {
     private final GraphManager graphManager;
     private final TopologicalVectorUpdater topologicalUpdater;
     private final double ACTIVATION_THRESHOLD = 2.5;
+
+    private final List<HDVector> extractedNodeVectors = new ArrayList<>();
+    private final List<HDVector> extractedTripleVectors = new ArrayList<>();
 
     public InvestigationEngine(HDVector contextTarget, GraphManager graphManager) {
         this.globalContextVector = contextTarget;
@@ -61,10 +62,19 @@ public class InvestigationEngine {
                 .bind(vP.permute(1))
                 .bind(vO.permute(2));
 
-        graphState.putIfAbsent(s, new SemanticNode(s, vS));
-        if (o.isResource()) {
-            graphState.putIfAbsent(o.asResource(), new SemanticNode(o.asResource(), vO));
+        SemanticNode nodeS = graphState.putIfAbsent(s, new SemanticNode(s, vS));
+        if (nodeS == null) {
+            extractedNodeVectors.add(vS);
         }
+
+        if (o.isResource()) {
+            SemanticNode nodeO = graphState.putIfAbsent(o.asResource(), new SemanticNode(o.asResource(), vO));
+            if (nodeO == null) {
+                extractedNodeVectors.add(vO);
+            }
+        }
+
+        extractedTripleVectors.add(tripleVector);
     }
 
     public void runCellularAutomatonStep() {
@@ -121,5 +131,18 @@ public class InvestigationEngine {
 
     public ItemMemory getItemMemory() {
         return itemMemory;
+    }
+
+    public List<HDVector> getNodeVectors() {
+        return new ArrayList<>(extractedNodeVectors);
+    }
+
+    public List<HDVector> getTripleVectors() {
+        return new ArrayList<>(extractedTripleVectors);
+    }
+
+    public void clearExtractedVectors() {
+        extractedNodeVectors.clear();
+        extractedTripleVectors.clear();
     }
 }

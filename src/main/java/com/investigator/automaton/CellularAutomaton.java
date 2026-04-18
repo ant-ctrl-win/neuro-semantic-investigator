@@ -1,14 +1,13 @@
 package com.investigator.automaton;
 
 import com.investigator.vsa.HDVector;
+import com.investigator.vsa.HDVectorMapB;
 import com.investigator.vsa.ItemMemory;
 import com.investigator.vsa.strategy.RandomGenerationStrategy;
 import com.investigator.engine.InvestigationEngine;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.Statement;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.stream.Stream;
+import java.util.*;
 
 public class CellularAutomaton {
 
@@ -27,6 +26,31 @@ public class CellularAutomaton {
         this.engine = engine;
         this.associationMatrix = new AssociationMatrix(cleanUpMemory);
         this.gaylerIntersection = new GaylerIntersection(cleanUpMemory);
+    }
+
+    public void initializeAnalogicalState(
+            List<HDVector> sourceNodes,
+            List<HDVector> targetNodes,
+            List<HDVector> sourceTriples,
+            List<HDVector> targetTriples) {
+
+        HDVector sumSourceNodes = bundleVectors(sourceNodes);
+        HDVector sumTargetNodes = bundleVectors(targetNodes);
+
+        this.x_t = sumSourceNodes.bind(sumTargetNodes);
+
+        associationMatrix.computeAnalogicalW(sourceTriples, targetTriples);
+    }
+
+    private HDVector bundleVectors(List<HDVector> vectors) {
+        if (vectors.isEmpty()) {
+            return new HDVectorMapB();
+        }
+        HDVector result = vectors.get(0);
+        for (int i = 1; i < vectors.size(); i++) {
+            result = result.bundle(vectors.get(i));
+        }
+        return result;
     }
 
     public void step() {

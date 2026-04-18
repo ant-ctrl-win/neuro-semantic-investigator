@@ -13,6 +13,7 @@ import com.investigator.automaton.CellularAutomaton;
 import com.investigator.automaton.GaylerIntersection;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.ModelFactory;
+import java.util.List;
 
 public class App {
 
@@ -166,5 +167,66 @@ public class App {
                         System.out.printf("   Top candidate: %s: %.4f\n", label, entry.getValue().similarity(resultRaw));
                     });
         }
+
+        // 7. DUAL-GRAPH ANALOGICAL MAPPING (Gayler & Levy, 2009)
+        // Test: Mappatura analogica tra due domini distinti
+        // Domini: Berlino (Q64) come source, Parigi (Q90) come target
+        System.out.println("\n=== DUAL-GRAPH ANALOGICAL MAPPING ===");
+        System.out.println("   Source: Berlino (Q64)");
+        System.out.println("   Target: Parigi (Q90)");
+        System.out.println("   Atteso: Scoperta della struttura condivisa");
+
+        // Crea engine separati per source e target (stessa ItemMemory condivisa)
+        GraphManager graphManagerSource = new GraphManager(wikidataEndpoint, new TripleExtractor());
+        InvestigationEngine engineSource = new InvestigationEngine(contextTarget, graphManagerSource, itemMemory, topologicalUpdater);
+
+        GraphManager graphManagerTarget = new GraphManager(wikidataEndpoint, new TripleExtractor());
+        InvestigationEngine engineTarget = new InvestigationEngine(contextTarget, graphManagerTarget, itemMemory, topologicalUpdater);
+
+        // Espandi entrambi i domini
+        String berlinUri = "http://www.wikidata.org/entity/Q64";
+        String parisUri = "http://www.wikidata.org/entity/Q90";
+
+        System.out.println("[*] Espansione dominio SOURCE (Berlino)...");
+        engineSource.expandAndProcess(ModelFactory.createDefaultModel().createResource(berlinUri));
+
+        System.out.println("[*] Espansione dominio TARGET (Parigi)...");
+        engineTarget.expandAndProcess(ModelFactory.createDefaultModel().createResource(parisUri));
+
+        // Estrai vettori dei nodi e delle triple
+        List<HDVector> sourceNodes = engineSource.getNodeVectors();
+        List<HDVector> sourceTriples = engineSource.getTripleVectors();
+        List<HDVector> targetNodes = engineTarget.getNodeVectors();
+        List<HDVector> targetTriples = engineTarget.getTripleVectors();
+
+        System.out.printf("   [*] Source nodes: %d, Source triples: %d\n", sourceNodes.size(), sourceTriples.size());
+        System.out.printf("   [*] Target nodes: %d, Target triples: %d\n", targetNodes.size(), targetTriples.size());
+
+        // Inizializza CellularAutomaton con mappatura analogica
+        // x_0 = sum(sourceNodes) ⊗ sum(targetNodes)
+        // w = ⊕(sourceTriples ⊗ targetTriples) per ogni coppia
+        HDVector dummyInitial = new HDVectorMapB();
+        CellularAutomaton analogicalCA = new CellularAutomaton(dummyInitial, engineSource, itemMemory);
+
+        System.out.println("[*] Inizializzazione stato analogico (Gayler formula)...");
+        analogicalCA.initializeAnalogicalState(sourceNodes, targetNodes, sourceTriples, targetTriples);
+
+        System.out.printf("   [*] x_t inizializzato con %d source nodes e %d target nodes bundle\n",
+            sourceNodes.size(), targetNodes.size());
+        System.out.printf("   [*] Matrice w calcolata con %d x %d = %d incroci\n",
+            sourceTriples.size(), targetTriples.size(),
+            sourceTriples.size() * targetTriples.size());
+
+        // Esegui alcuni step dell'automa
+        System.out.println("[*] Esecuzione 3 cicli di investigazione analogica...");
+        for (int i = 0; i < 3; i++) {
+            analogicalCA.runInvestigationStep();
+            System.out.printf("   [*] Step %d completato. Stato attuale similarità con contextTarget: %.4f\n",
+                i + 1, analogicalCA.getState().similarity(contextTarget));
+        }
+
+        System.out.println("\n   [INFO] La mappatura analogica è stata eseguita.");
+        System.out.println("   [INFO] Lo stato x_t contiene la rappresentazione vettoriale");
+        System.out.println("   [INFO] della struttura condivisa tra i due domini.");
     }
 }
