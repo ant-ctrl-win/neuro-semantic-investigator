@@ -7,7 +7,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ItemMemory {
-    private final Map<String, HDVector> memory = new ConcurrentHashMap<>();
+    // 1. IL VOCABOLARIO (Memoria Atomica Pura) - MAI SOVRASCRITTA
+    private final Map<String, HDVector> atomicMemory = new ConcurrentHashMap<>();
+
+    // 2. L'ENCICLOPEDIA (Memoria Topologica) - Salva i Mega Vettori di Simpkin
+    private final Map<String, HDVector> treeMemory = new ConcurrentHashMap<>();
+
+    public static final String TREE_POSITION_URI = "vsa:internal:tree_position";
     private final VectorGenerationStrategy strategy;
 
     private double lastMean = 0.0;
@@ -19,27 +25,31 @@ public class ItemMemory {
         this.strategy = strategy;
     }
 
+    // Recupera dal Vocabolario (Genera se non esiste)
     public HDVector getOrGenerate(String uri) {
-        return memory.computeIfAbsent(uri, k -> strategy.generate(uri));
+        return atomicMemory.computeIfAbsent(uri, k -> strategy.generate(uri));
     }
 
     public Map<String, HDVector> getAllVectors() {
-        return memory;
+        return atomicMemory;
     }
 
-    public void updateVector(String uri, HDVector newVector) {
-        if (memory.containsKey(uri)) {
-            memory.put(uri, newVector);
-        } else {
-            throw new IllegalArgumentException("URI not found in memory: " + uri);
-        }
+    // --- GESTIONE ALBERO DI SIMPKIN ---
+    public void saveTreeVector(String uri, HDVector treeRoot) {
+        treeMemory.put(uri, treeRoot);
     }
 
+    // Recupera l'Albero di un'entità. Se non ha un albero, restituisce il vettore atomico.
+    public HDVector getTreeVector(String uri) {
+        return treeMemory.getOrDefault(uri, getOrGenerate(uri));
+    }
+
+    // Metodo legacy richiesto da GaylerIntersection.java per l'automa cellulare
     public HDVector cleanUp(HDVector noisyVector, double threshold) {
         double bestSimilarity = -1.0;
         HDVector bestMatch = noisyVector;
 
-        for (Map.Entry<String, HDVector> entry : memory.entrySet()) {
+        for (Map.Entry<String, HDVector> entry : atomicMemory.entrySet()) {
             HDVector candidate = entry.getValue();
             double sim = noisyVector.similarity(candidate);
             if (sim > bestSimilarity && sim > threshold) {
@@ -50,13 +60,15 @@ public class ItemMemory {
         return bestMatch;
     }
 
+
+    // --- CLEAN-UP STATISTICO (Scansiona SOLO il Vocabolario puro) ---
     public HDVector cleanUpRelative(HDVector noisyVector) {
         List<Double> similarities = new ArrayList<>();
         double bestSimilarity = -1.0;
         HDVector bestMatch = noisyVector;
         String bestKey = null;
 
-        for (Map.Entry<String, HDVector> entry : memory.entrySet()) {
+        for (Map.Entry<String, HDVector> entry : atomicMemory.entrySet()) {
             HDVector candidate = entry.getValue();
             double sim = noisyVector.similarity(candidate);
             similarities.add(sim);
@@ -69,15 +81,11 @@ public class ItemMemory {
 
         int n = similarities.size();
         double sum = 0.0;
-        for (double s : similarities) {
-            sum += s;
-        }
+        for (double s : similarities) { sum += s; }
         double mean = sum / n;
 
         double variance = 0.0;
-        for (double s : similarities) {
-            variance += (s - mean) * (s - mean);
-        }
+        for (double s : similarities) { variance += (s - mean) * (s - mean); }
         variance /= n;
         double stdDev = Math.sqrt(variance);
 
@@ -88,25 +96,15 @@ public class ItemMemory {
         lastBestSigma = sigmaFromMean;
         lastBestKey = bestKey;
 
-        if (stdDev > 0 && bestSimilarity > mean + (6 * stdDev)) {
+        // Se l'outlier è forte (> 5 sigma), restituisce la "parola" pura!
+        if (stdDev > 0 && sigmaFromMean > 5.0) {
             return bestMatch;
         }
         return noisyVector;
     }
 
-    public double getLastMean() {
-        return lastMean;
-    }
-
-    public double getLastStdDev() {
-        return lastStdDev;
-    }
-
-    public double getLastBestSigma() {
-        return lastBestSigma;
-    }
-
-    public String getLastBestKey() {
-        return lastBestKey;
-    }
+    public double getLastMean() { return lastMean; }
+    public double getLastStdDev() { return lastStdDev; }
+    public double getLastBestSigma() { return lastBestSigma; }
+    public String getLastBestKey() { return lastBestKey; }
 }

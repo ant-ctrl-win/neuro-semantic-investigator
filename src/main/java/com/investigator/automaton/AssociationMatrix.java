@@ -3,60 +3,56 @@ package com.investigator.automaton;
 import com.investigator.vsa.HDVector;
 import com.investigator.vsa.HDVectorMapB;
 import com.investigator.vsa.ItemMemory;
+import java.util.ArrayList;
 import java.util.List;
 
 public class AssociationMatrix {
 
     private HDVector w;
     private final ItemMemory cleanUpMemory;
-    private int tripleCount;
+    private int branchCrossCount;
 
     public AssociationMatrix(ItemMemory cleanUpMemory) {
         this.cleanUpMemory = cleanUpMemory;
         this.w = new HDVectorMapB();
-        this.tripleCount = 0;
-    }
-
-    public void accumulate(HDVector tripleVector) {
-        if (tripleCount == 0) {
-            w = tripleVector;
-        } else {
-            w = w.bundle(tripleVector);
-        }
-        tripleCount++;
+        this.branchCrossCount = 0;
     }
 
     public HDVector getW() {
         return w;
     }
 
-    public int getCardinality() {
-        return tripleCount;
-    }
-
     public ItemMemory getCleanUpMemory() {
         return cleanUpMemory;
     }
 
-    public void computeAnalogicalW(List<HDVector> sourceTriples, List<HDVector> targetTriples) {
-        HDVector w_acc = null;
-        int crossCount = 0;
+    // NUOVO METODO: Crea la matrice W incrociando i rami (Chunk) invece delle triple!
+    public void computeAnalogicalW(List<HDVector> sourceBranches, List<HDVector> targetBranches) {
+        List<HDVector> crossProducts = new ArrayList<>();
 
-        for (HDVector sTriple : sourceTriples) {
-            for (HDVector tTriple : targetTriples) {
-                HDVector crossProduct = sTriple.bind(tTriple);
-                if (w_acc == null) {
-                    w_acc = crossProduct;
-                } else {
-                    w_acc = w_acc.bundle(crossProduct);
-                }
-                crossCount++;
+        // Prodotto cartesiano macroscopico tra i rami delle due entità
+        for (HDVector sBranch : sourceBranches) {
+            for (HDVector tBranch : targetBranches) {
+                // Leghiamo l'intera topologia del ramo Source con il ramo Target
+                HDVector crossProduct = sBranch.bind(tBranch);
+                crossProducts.add(crossProduct);
             }
         }
 
-        if (w_acc != null) {
-            this.w = w_acc;
-            this.tripleCount = crossCount;
+        this.branchCrossCount = crossProducts.size();
+
+        // TRUCCO MATEMATICO: Prevenzione del Tie-Breaking Noise (Parità)
+        // Se il numero di rami incrociati è pari, aggiungiamo un vettore identità neutro per rendere la somma dispari
+        if (crossProducts.size() % 2 == 0) {
+            // Un vettore casuale puro funge da rumore neutro che non altera le similarità, ma rompe i pareggi
+            crossProducts.add(HDVectorMapB.generateRandom());
         }
+
+        // Creiamo la matrice di associazione W con un singolo bundle simultaneo e pulito
+        this.w = HDVectorMapB.bundleSimultaneous(crossProducts);
+    }
+
+    public int getCardinality() {
+        return branchCrossCount;
     }
 }

@@ -1,13 +1,9 @@
 package com.investigator.automaton;
 
 import com.investigator.vsa.HDVector;
-import com.investigator.vsa.HDVectorMapB;
 import com.investigator.vsa.ItemMemory;
-import com.investigator.vsa.strategy.RandomGenerationStrategy;
 import com.investigator.engine.InvestigationEngine;
-import org.apache.jena.rdf.model.Resource;
-import org.apache.jena.rdf.model.Statement;
-import java.util.*;
+import java.util.List;
 
 public class CellularAutomaton {
 
@@ -15,8 +11,6 @@ public class CellularAutomaton {
     private final AssociationMatrix associationMatrix;
     private final GaylerIntersection gaylerIntersection;
     private final InvestigationEngine engine;
-
-    private static final double ACTIVATION_THRESHOLD = 2.5;
 
     public CellularAutomaton(
             HDVector initialState,
@@ -28,91 +22,46 @@ public class CellularAutomaton {
         this.gaylerIntersection = new GaylerIntersection(cleanUpMemory);
     }
 
+    // INIZIALIZZAZIONE: Usa direttamente gli Alberi di Simpkin e i loro Rami pronti
     public void initializeAnalogicalState(
-            List<HDVector> sourceNodes,
-            List<HDVector> targetNodes,
-            List<HDVector> sourceTriples,
-            List<HDVector> targetTriples) {
+            HDVector sourceTreeRoot,
+            HDVector targetTreeRoot,
+            List<HDVector> sourceBranches,
+            List<HDVector> targetBranches) {
 
-        HDVector sumSourceNodes = bundleVectors(sourceNodes);
-        HDVector sumTargetNodes = bundleVectors(targetNodes);
+        // Lo stato iniziale dell'automa è l'ipotesi di mapping globale tra le due Radici
+        this.x_t = sourceTreeRoot.bind(targetTreeRoot);
 
-        this.x_t = sumSourceNodes.bind(sumTargetNodes);
-
-        associationMatrix.computeAnalogicalW(sourceTriples, targetTriples);
+        // La matrice di associazione W viene costruita incrociando i rami strutturali (macro-chunk)
+        associationMatrix.computeAnalogicalW(sourceBranches, targetBranches);
     }
 
-    private HDVector bundleVectors(List<HDVector> vectors) {
-        if (vectors.isEmpty()) {
-            return new HDVectorMapB();
-        }
-        HDVector result = vectors.get(0);
-        for (int i = 1; i < vectors.size(); i++) {
-            result = result.bundle(vectors.get(i));
-        }
-        return result;
-    }
+//    // IL MOTORE MATEMATICO DI GAYLER
+//    public void step() {
+//        // 1. π_t = x_t ⊗ W (Calcola l'evoluzione prevista moltiplicando per la matrice W)
+//        HDVector pi_t = x_t.bind(associationMatrix.getW());
+//
+//        // 2. Intersezione Sigma-Pi tra lo stato attuale e quello previsto
+//        HDVector z_t = gaylerIntersection.intersect(x_t, pi_t);
+//
+//        // 3. Clean-up per forzare il vettore emergente nel dominio concettuale noto
+//        x_t = gaylerIntersection.cleanUp(z_t);
+//    }
 
+    // IL MOTORE MATEMATICO DI RELAXATION
     public void step() {
+        // 1. Calcola l'evoluzione prevista moltiplicando per la matrice strutturale W
         HDVector pi_t = x_t.bind(associationMatrix.getW());
 
-        HDVector z_t = gaylerIntersection.intersect(x_t, pi_t);
-
-        x_t = gaylerIntersection.cleanUp(z_t);
+        // 2. Aggiorna lo stato. In MAP-B usiamo il bundle per sommare l'ipotesi precedente
+        // con la nuova evoluzione strutturale, stabilizzando la rete.
+        // NON facciamo il cleanUp atomico, altrimenti distruggiamo la natura "relazionale" dello stato!
+        x_t = x_t.bundle(pi_t);
     }
 
-    public void addTripleVector(HDVector tripleVector) {
-        associationMatrix.accumulate(tripleVector);
-    }
-
-    public void addTriple(Statement stmt) {
-        Resource s = stmt.getSubject();
-        Resource p = stmt.getPredicate();
-        org.apache.jena.rdf.model.RDFNode o = stmt.getObject();
-
-        ItemMemory mem = associationMatrix.getCleanUpMemory();
-
-        HDVector vS = mem.getOrGenerate(s.getURI());
-        HDVector vP = mem.getOrGenerate(p.getURI());
-        HDVector vO = o.isResource() ?
-                mem.getOrGenerate(o.asResource().getURI()) :
-                mem.getOrGenerate(o.asLiteral().getString());
-
-        HDVector tripleVector = vS
-                .bind(vP.permute(1))
-                .bind(vO.permute(2));
-
-        associationMatrix.accumulate(tripleVector);
-    }
 
     public void runInvestigationStep() {
-        Set<Resource> visited = new HashSet<>();
-        for (var nodeEntry : engine.getGraphState().entrySet()) {
-            visited.add(nodeEntry.getKey());
-        }
-
-        Set<Resource> unexplored = engine.getGraphManager().getUnexploredNodes(visited);
-
-        for (Resource node : unexplored) {
-            engine.expandAndProcess(node);
-        }
-
-        for (var nodeEntry : engine.getGraphState().entrySet()) {
-            var node = nodeEntry.getValue();
-            double resonance = node.getCurrentVector().similarity(x_t);
-
-            if (resonance > 0) {
-                node.addEnergy(resonance);
-            } else {
-                node.reduceEnergy(0.1);
-            }
-
-            if (node.getEnergy() > ACTIVATION_THRESHOLD) {
-                engine.expandAndProcess(node.getJenaResource());
-                node.resetEnergy();
-            }
-        }
-
+        // Esegue semplicemente lo step matematico (niente più esplorazioni di grafi qui)
         step();
     }
 

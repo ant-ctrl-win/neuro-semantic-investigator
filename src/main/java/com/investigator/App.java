@@ -10,84 +10,101 @@ import com.investigator.jena.TripleExtractor;
 import com.investigator.jena.GraphManager;
 import com.investigator.engine.InvestigationEngine;
 import com.investigator.automaton.CellularAutomaton;
-import com.investigator.automaton.GaylerIntersection;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.ModelFactory;
 import java.util.List;
 
 public class App {
 
+    // Definiamo l'URI interno per il vettore posizionale dell'albero
+    public static final String TREE_POSITION_URI = "vsa:internal:tree_position";
+
     public static void main(String[] args) {
-        System.out.println("=== AVVIO NEURO-SEMANTIC INVESTIGATOR ===\n");
+        System.out.println("=== AVVIO NEURO-SEMANTIC INVESTIGATOR (Fase 2: Simpkin Tree) ===\n");
 
         ItemMemory itemMemory = new ItemMemory(new RandomGenerationStrategy());
 
-        // 1. DEFINIAMO IL TARGET: Cerchiamo la Germania (Q183) tramite la proprietà Paese (P17)
+        // 1. INIZIALIZZAZIONE VETTORI CHIAVE E STRUTTURALI
         String p17Uri = "http://www.wikidata.org/prop/direct/P17";
         String q183Uri = "http://www.wikidata.org/entity/Q183";
 
         HDVector vP17 = itemMemory.getOrGenerate(p17Uri);
         HDVector vQ183 = itemMemory.getOrGenerate(q183Uri);
 
-        // Identikit: P(1) ⊗ O(2)
-        HDVector contextTarget = vP17.permute(1).bind(vQ183.permute(2));
+        // Generiamo e fissiamo il vettore strutturale dell'albero
+        HDVector vTree = itemMemory.getOrGenerate(TREE_POSITION_URI);
 
+        HDVector contextTarget = vP17.permute(1).bind(vQ183.permute(2));
         System.out.println("[*] Target Semantico: [Qualcosa] -> P17 -> Q183 (Germania)");
 
-        // 2. Setup Motore
+        // 2. SETUP MOTORE
         SparqlEndpoint wikidataEndpoint = new SparqlEndpoint("https://query.wikidata.org/sparql");
         GraphManager graphManager = new GraphManager(wikidataEndpoint, new TripleExtractor());
         TopologicalVectorUpdater topologicalUpdater = new TopologicalVectorUpdater();
 
         InvestigationEngine engine = new InvestigationEngine(contextTarget, graphManager, itemMemory, topologicalUpdater);
 
-        // 3. TARGET TEST: BERLINO (Q64) invece del Muro o delle Piombatoie
-        // Q64 è un'entità "ricca" che DEVE avere P17 -> Q183
+        // =====================================================================
+        // 3. TARGET TEST: BERLINO (Q64)
+        // =====================================================================
         String targetQ = "http://www.wikidata.org/entity/Q64";
         Resource targetEntity = ModelFactory.createDefaultModel().createResource(targetQ);
 
-        System.out.println("[*] Analisi Topologica di: " + targetQ);
+        System.out.println("\n[*] Analisi Topologica e Costruzione Albero per: " + targetQ);
         engine.expandAndProcess(targetEntity);
 
-        // === DUMP TRIPLE SCARICATE PER Q64 ===
-        System.out.println("\n=== DUMP TRIPLE SCARICATE PER " + targetQ + " ===");
-        graphManager.getLocalModel().listStatements(targetEntity, null, (org.apache.jena.rdf.model.RDFNode)null)
-            .forEachRemaining(stmt -> {
-                System.out.println("   P: " + stmt.getPredicate().getURI() + " -> O: " + stmt.getObject());
-            });
+        System.out.println("\n=== DECRIPTAZIONE VETTORIALE (UNBINDING ALBERO) SU BERLINO ===");
 
-        // 4. VERIFICA MATEMATICA: UNBINDING SUL VETTORE DI BERLINO
-        System.out.println("\n=== DECRIPTazione VETTORIALE (UNBINDING) ===");
-        HDVector vBerlino = itemMemory.getOrGenerate(targetQ);
+//        HDVector megaVettoreBerlino = itemMemory.getOrGenerate(targetQ);
+        HDVector megaVettoreBerlino = itemMemory.getTreeVector(targetQ);
+        double bestBerlinSim = -1.0;
+        int winningBerlinBranch = -1;
+        double winningBerlinSigma = 0.0;
+        String winningBerlinKey = null;
 
-        // Proviamo a estrarre l'oggetto usando il predicato: (V_mosaico ⊗ ρ1(P)) ⊗ ρ-2
-        // Se la topologia ha funzionato, 'extracted' deve essere simile a vQ183 (Germania)
-        HDVector extracted = vBerlino.bind(vP17.permute(1)).permute(-2);
-        HDVector cleaned = itemMemory.cleanUpRelative(extracted);
-        double discoverySim = cleaned.similarity(vQ183);
+        int maxBranches = 8; // Assumiamo un massimo di 8 rami
 
-        System.out.printf("   - Similarità (Berlino vs Germania) BASE: %.4f\n", vBerlino.similarity(vQ183));
-        System.out.printf("   - RISONANZA ESTRATTA (Pattern P17->Q183, dopo Clean-up): %.4f\n", discoverySim);
+        System.out.println("   [*] Navigazione dell'albero vettoriale di Berlino con sonda P17");
 
-        if (discoverySim > 0.1) {
-            System.out.println("   [SUCCESS] Il segnale topologico è stato trovato!");
-        } else {
-            System.out.println("   [FAILURE] Il segnale è ancora assente. Verificare URIs o Bundling.");
+        for (int i = 0; i < maxBranches; i++) {
+            // STEP 1: Svincoliamo il ramo i-esimo dall'albero radice
+            HDVector extractedChunk = megaVettoreBerlino.bind(vTree.permute(i + 1));
+
+            // STEP 2: Svincoliamo il target relazionale (Oggetto) dal ramo
+            HDVector extractedTarget = extractedChunk.bind(vP17.permute(1)).permute(-2);
+
+            // Clean-up statistico
+            HDVector cleaned = itemMemory.cleanUpRelative(extractedTarget);
+            double sim = cleaned.similarity(vQ183);
+
+            // Stampiamo i rami per vedere cosa contiene davvero Berlino
+            if (itemMemory.getLastBestSigma() > 1.0) {
+                String bestMatchLabel = itemMemory.getLastBestKey() != null
+                        ? itemMemory.getLastBestKey().substring(itemMemory.getLastBestKey().lastIndexOf("/") + 1)
+                        : "N/A";
+                System.out.printf("   [*] Ramo %d - Z-Score: %.2f σ (Best match grezzo: %s)\n",
+                        i, itemMemory.getLastBestSigma(), bestMatchLabel);
+            }
+
+            if (sim > bestBerlinSim) {
+                bestBerlinSim = sim;
+                winningBerlinBranch = i;
+                winningBerlinSigma = itemMemory.getLastBestSigma();
+                winningBerlinKey = itemMemory.getLastBestKey();
+            }
         }
 
-        // 5. CLASSIFICA FINALE
-        System.out.println("\n=== CLASSIFICA RISONANZA TOPOLOGICA ===");
-        itemMemory.getAllVectors().entrySet().stream()
-                .filter(entry -> entry.getKey().contains("/entity/Q"))
-                .sorted((e1, e2) -> Double.compare(e2.getValue().similarity(contextTarget), e1.getValue().similarity(contextTarget)))
-                .limit(5)
-                .forEach(entry -> {
-                    String label = entry.getKey().substring(entry.getKey().lastIndexOf("/") + 1);
-                    System.out.printf("   %s: %.4f\n", label, entry.getValue().similarity(contextTarget));
-                });
+        System.out.printf("\n   [*] Risultato Finale su Berlino:\n");
+        if (winningBerlinSigma > 5.0 && winningBerlinKey != null && winningBerlinKey.contains("Q183")) {
+            System.out.printf("   [SUCCESS] Germania (Q183) estratta dal Ramo %d come OUTLIER (%.2f σ)!\n", winningBerlinBranch, winningBerlinSigma);
+            System.out.printf("   [SUCCESS] Similarità finale con il vettore puro della Germania: %.4f\n", bestBerlinSim);
+        } else {
+            System.out.println("   [FAILURE] Segnale non trovato. È probabile che P17 non sia stata estratta dalla query SPARQL (LIMIT 100).");
+        }
 
-        // 6. TEST ANALOGIA: Relational Analogy (Pattern-based)
-        // Test: Berlino : Germania = Parigi : X
+        // =====================================================================
+        // 4. TEST ANALOGIA: PARIGI (Q90)
+        // =====================================================================
         System.out.println("\n=== TEST ANALOGIA RELAZIONALE ===");
         System.out.println("   Pattern: [Qualcosa] --P17--> Q183 (Germania)");
         System.out.println("   Atteso: Parigi --P17--> Q142 (Francia)");
@@ -96,137 +113,185 @@ public class App {
         String q142Uri = "http://www.wikidata.org/entity/Q142"; // France
 
         Resource parisEntity = ModelFactory.createDefaultModel().createResource(q90Uri);
-        System.out.println("[*] Analisi Topologica di: " + q90Uri);
+        System.out.println("\n[*] Analisi Topologica e Costruzione Albero per: " + q90Uri);
         engine.expandAndProcess(parisEntity);
 
-        HDVector vGermania = vQ183;
         HDVector vFrancia = itemMemory.getOrGenerate(q142Uri);
+//        HDVector megaVettoreParigi = itemMemory.getOrGenerate(q90Uri);
+        HDVector megaVettoreParigi = itemMemory.getTreeVector(q90Uri);
 
-        // Re-fetch del vettore aggiornato dopo l'espansione topologica
-        HDVector vParigi = itemMemory.getOrGenerate(q90Uri);
-        System.out.printf("   [*] vParigi ricaricato dalla memory dopo expand\n");
+        System.out.println("   [*] Navigazione dell'albero vettoriale di Parigi con sonda P17");
 
-        // ============================================================
-        // SELECTIVE RELATIONAL QUERY (Attenzione Selettiva)
-        // Usa il predificato P17 scoperto come "sonda" per interrogare Parigi
-        // ============================================================
-        // P17 è un vettore PURO (non derivato da bundle), quindi il rumore è minimo
-        // Chiediamo a Parigi: "Qual è l'oggetto che occupa il ruolo P17 dentro di te?"
-        // resultRaw = vParigi ⊗ ρ¹(P17) ⊗ ρ⁻²
-        HDVector resultRaw = vParigi.bind(vP17.permute(1)).permute(-2);
-        System.out.println("   [*] Query diretta su Parigi con P17 come sonda");
+        double bestChunkSim = -1.0;
+        int winningBranch = -1;
+        double winningSigma = 0.0;
+        String winningKey = null;
 
-        System.out.printf("   [*] Similarità RAW con Francia (Q142): %.4f\n",
-            resultRaw.similarity(vFrancia));
+        for (int i = 0; i < maxBranches; i++) {
+            // STEP 1: Isoliamo il ramo (Chunk)
+            HDVector extractedChunk = megaVettoreParigi.bind(vTree.permute(i + 1));
 
-        // Clean-up finale per agganciare il risultato al vettore più simile
-        HDVector analogyCleaned = itemMemory.cleanUpRelative(resultRaw);
-        double analogySim = analogyCleaned.similarity(vFrancia);
+            // STEP 2: Isoliamo l'entità target dal ramo
+            HDVector resultRaw = extractedChunk.bind(vP17.permute(1)).permute(-2);
 
-        // Statistiche Z-Score
-        double mean = itemMemory.getLastMean();
-        double stdDev = itemMemory.getLastStdDev();
-        double sigma = itemMemory.getLastBestSigma();
-        String bestKey = itemMemory.getLastBestKey();
+            // STEP 3: Filtraggio Z-Score
+            HDVector analogyCleaned = itemMemory.cleanUpRelative(resultRaw);
+            double analogySim = analogyCleaned.similarity(vFrancia);
 
-        System.out.printf("   [*] Statistiche Z-Score:\n");
-        System.out.printf("   [*]   Media rumore di fondo (μ): %.6f\n", mean);
-        System.out.printf("   [*]   Deviazione Standard (σ): %.6f\n", stdDev);
-        System.out.printf("   [*]   Sigma dalla media: %.2f σ\n", sigma);
-        System.out.printf("   [*]   Best match: %s\n", bestKey != null ? bestKey.substring(bestKey.lastIndexOf("/") + 1) : "N/A");
+            // Stampiamo solo i rami che mostrano un minimo segno di reazione (> 1.0 sigma)
+            if (itemMemory.getLastBestSigma() > 1.0) {
+                String bestMatchLabel = itemMemory.getLastBestKey() != null
+                        ? itemMemory.getLastBestKey().substring(itemMemory.getLastBestKey().lastIndexOf("/") + 1)
+                        : "N/A";
+                System.out.printf("   [*] Ramo %d - Z-Score: %.2f σ (Best match grezzo: %s)\n",
+                        i, itemMemory.getLastBestSigma(), bestMatchLabel);
+            }
 
-        String analogyLabel = (stdDev > 0 && sigma > 6) ? "Francia (Outlier 6σ)" : "Sconosciuto";
-        System.out.printf("   [*] Risultato: %s\n", analogyLabel);
+            if (analogySim > bestChunkSim) {
+                bestChunkSim = analogySim;
+                winningBranch = i;
+                winningSigma = itemMemory.getLastBestSigma();
+                winningKey = itemMemory.getLastBestKey();
+            }
+        }
 
-        if (sigma > 6) {
-            System.out.println("   [SUCCESS] La Francia è un OUTLIER statistico (>6σ)!");
+        System.out.printf("\n   [*] Risultato Finale sull'Analogia:\n");
+        if (winningSigma > 5.0 && winningKey != null && winningKey.contains("Q142")) {
+            System.out.printf("   [SUCCESS] Francia (Q142) estratta dal Ramo %d come OUTLIER (%.2f σ)!\n", winningBranch, winningSigma);
+            System.out.printf("   [SUCCESS] Similarità finale con il vettore puro della Francia: %.4f\n", bestChunkSim);
         } else {
-            System.out.println("   [INFO] La Francia non è un outlier significativo. Debug in corso...");
-            itemMemory.getAllVectors().entrySet().stream()
-                    .filter(entry -> entry.getKey().contains("/entity/Q"))
-                    .sorted((e1, e2) -> Double.compare(e2.getValue().similarity(resultRaw), e1.getValue().similarity(resultRaw)))
-                    .limit(5)
-                    .forEach(entry -> {
-                        String label = entry.getKey().substring(entry.getKey().lastIndexOf("/") + 1);
-                        double sim = entry.getValue().similarity(resultRaw);
-                        double entrySigma = (stdDev > 0) ? (sim - mean) / stdDev : 0;
-                        System.out.printf("   %s: %.4f (%.2f σ)\n", label, sim, entrySigma);
-                    });
+            System.out.println("   [FAILURE] Nessun ramo ha superato la soglia di significatività statistica.");
         }
 
-        if (analogySim > 0.1) {
-            System.out.println("   [SUCCESS] L'analogia strutturale è confermata!");
+
+//        // =====================================================================
+//        // 5. DUAL-GRAPH ANALOGICAL MAPPING (Fase 2: Simpkin Branches)
+//        // =====================================================================
+//        System.out.println("\n=== DUAL-GRAPH ANALOGICAL MAPPING ===");
+//        System.out.println("   Source: Berlino (Q64)");
+//        System.out.println("   Target: Parigi (Q90)");
+//
+//        System.out.println("[*] Recupero degli Alberi Vettoriali e scomposizione in rami...");
+//
+//        // Prepariamo le liste per contenere i rami svincolati
+//        List<HDVector> sourceBranches = new java.util.ArrayList<>();
+//        List<HDVector> targetBranches = new java.util.ArrayList<>();
+//
+//        // Estraiamo i rami da Berlino (Source)
+//        for (int i = 0; i < maxBranches; i++) {
+//            HDVector branch = megaVettoreBerlino.bind(vTree.permute(i + 1));
+//            // Filtriamo il puro rumore: se il ramo non somiglia nemmeno a se stesso bundlato, è vuoto
+//            if (branch.similarity(branch) > 0.9) {
+//                sourceBranches.add(branch);
+//            }
+//        }
+//
+//        // Estraiamo i rami da Parigi (Target)
+//        for (int i = 0; i < maxBranches; i++) {
+//            HDVector branch = megaVettoreParigi.bind(vTree.permute(i + 1));
+//            if (branch.similarity(branch) > 0.9) {
+//                targetBranches.add(branch);
+//            }
+//        }
+//
+//        System.out.printf("   [*] Source branches (Berlino): %d rami isolati.\n", sourceBranches.size());
+//        System.out.printf("   [*] Target branches (Parigi): %d rami isolati.\n", targetBranches.size());
+//
+//        // Inizializziamo l'automa passandogli direttamente l'investigationEngine di Parigi (o dummy)
+//        HDVector dummyInitial = new HDVectorMapB();
+//        CellularAutomaton analogicalCA = new CellularAutomaton(dummyInitial, engine, itemMemory);
+//
+//        System.out.println("[*] Inizializzazione stato analogico (Gayler + Simpkin)...");
+//        // Passiamo le Radici e i Rami per una costruzione matematica senza collasso
+//        analogicalCA.initializeAnalogicalState(megaVettoreBerlino, megaVettoreParigi, sourceBranches, targetBranches);
+//
+//        System.out.printf("   [*] Matrice W calcolata con %d incroci macroscopici (zero rumore di fondo).\n", analogicalCA.getAssociationMatrix().getCardinality());
+//
+////        System.out.println("[*] Esecuzione automa cellulare...");
+////        for (int i = 0; i < 3; i++) {
+////            analogicalCA.step(); // Chiamiamo lo step matematico puro (l'intersezione Sigma-Pi)
+////
+////            // Verifichiamo se lo stato emergente x_t si sta avvicinando al nostro target causale noto
+////            double resonance = analogicalCA.getState().similarity(contextTarget);
+////            System.out.printf("   [*] Step %d completato. Risonanza dello stato x_t con [Qualcosa]->P17->Q183: %.4f\n", i + 1, resonance);
+////        }
+////
+////        System.out.println("\n   [INFO] Mappatura analogica eseguita e completata.");
+//
+//        System.out.println("[*] Esecuzione automa cellulare e Test Analogico...");
+//        for (int i = 0; i < 3; i++) {
+//            analogicalCA.step();
+//
+//            // IL VERO TEST: Interroghiamo lo stato analogico x_t
+//            // Chiediamo: "Secondo la mappa strutturale corrente, chi è l'analogo della Germania (Q183)?"
+//            HDVector analogOfGermany = analogicalCA.getState().bind(vQ183);
+//
+//            // Ripuliamo il risultato per trovare a quale concetto atomico corrisponde
+//            HDVector cleanedAnalog = itemMemory.cleanUpRelative(analogOfGermany);
+//            double simToFrance = cleanedAnalog.similarity(vFrancia);
+//
+//            String bestMatchLabel = itemMemory.getLastBestKey() != null
+//                    ? itemMemory.getLastBestKey().substring(itemMemory.getLastBestKey().lastIndexOf("/") + 1)
+//                    : "N/A";
+//
+//            System.out.printf("   [*] Step %d completato.\n", i + 1);
+//            System.out.printf("       - Equivalente trovato: %s (Z-Score: %.2f σ)\n", bestMatchLabel, itemMemory.getLastBestSigma());
+//            System.out.printf("       - Similarità vettoriale con la Francia (Q142): %.4f\n", simToFrance);
+//        }
+//
+//        System.out.println("\n   [INFO] Mappatura analogica eseguita e completata.");
+
+        // =====================================================================
+        // 5. HOLOGRAPHIC ANALOGICAL TRANSLATION (Simpkin + VSA)
+        // =====================================================================
+        System.out.println("\n=== HOLOGRAPHIC ANALOGICAL TRANSLATION ===");
+        System.out.println("   Source: Berlino (Q64) | Target: Parigi (Q90)");
+
+        System.out.println("[*] Estrazione dei Rami (Simpkin Branches)...");
+        List<HDVector> sourceBranches = new java.util.ArrayList<>();
+        List<HDVector> targetBranches = new java.util.ArrayList<>();
+
+        // Estraiamo gli 8 rami dai Mega Vettori
+        for (int i = 0; i < 8; i++) {
+            sourceBranches.add(megaVettoreBerlino.bind(vTree.permute(i + 1)));
+            targetBranches.add(megaVettoreParigi.bind(vTree.permute(i + 1)));
+        }
+
+        // Costruiamo la Matrice di Traduzione W
+        System.out.println("[*] Costruzione della Matrice di Traduzione Olografica W...");
+        com.investigator.automaton.AssociationMatrix wMatrix = new com.investigator.automaton.AssociationMatrix(itemMemory);
+        wMatrix.computeAnalogicalW(sourceBranches, targetBranches);
+        HDVector W = wMatrix.getW();
+
+        System.out.println("[*] Esecuzione della Traduzione Analogica...");
+
+        // 1. Prendiamo il ramo di Berlino che sappiamo contenere la Germania (Ramo 1 dal log)
+        int ramoTargetIndex = 1;
+        HDVector ramoBerlinoConGermania = sourceBranches.get(ramoTargetIndex);
+
+        // 2. LA MAGIA VSA: Traduciamo il ramo di Berlino nel dominio di Parigi!
+        System.out.println("   [*] Applico W al Ramo Source (Translating...)");
+        HDVector ramiParigiTradotti = W.bind(ramoBerlinoConGermania);
+
+        // 3. Interroghiamo il risultato della traduzione con la sonda P17
+        System.out.println("   [*] Interrogo il risultato della traduzione con la sonda P17...");
+        HDVector traduzioneGrezza = ramiParigiTradotti.bind(vP17.permute(1)).permute(-2);
+
+        // 4. Clean-up statistico
+        HDVector risultatoFinale = itemMemory.cleanUpRelative(traduzioneGrezza);
+        double analogSim = risultatoFinale.similarity(vFrancia);
+
+        String analogMatch = itemMemory.getLastBestKey() != null
+                ? itemMemory.getLastBestKey().substring(itemMemory.getLastBestKey().lastIndexOf("/") + 1)
+                : "N/A";
+
+        System.out.printf("\n   [*] Risultato della Traduzione Analogica:\n");
+        if (itemMemory.getLastBestSigma() > 5.0 && analogMatch.equals("Q142")) {
+            System.out.printf("   [SUCCESS] L'analogo trovato è la Francia (Q142) con %.2f σ!\n", itemMemory.getLastBestSigma());
+            System.out.printf("   [SUCCESS] Similarità vettoriale: %.4f\n", analogSim);
         } else {
-            System.out.println("   [INFO] Il sistema non ha raggiunto la soglia. Debug in corso...");
-            itemMemory.getAllVectors().entrySet().stream()
-                    .filter(entry -> entry.getKey().contains("/entity/Q"))
-                    .sorted((e1, e2) -> Double.compare(e2.getValue().similarity(resultRaw), e1.getValue().similarity(resultRaw)))
-                    .limit(3)
-                    .forEach(entry -> {
-                        String label = entry.getKey().substring(entry.getKey().lastIndexOf("/") + 1);
-                        System.out.printf("   Top candidate: %s: %.4f\n", label, entry.getValue().similarity(resultRaw));
-                    });
+            System.out.printf("   [FAILURE] Traduzione fallita. Match grezzo: %s (%.2f σ)\n", analogMatch, itemMemory.getLastBestSigma());
         }
 
-        // 7. DUAL-GRAPH ANALOGICAL MAPPING (Gayler & Levy, 2009)
-        // Test: Mappatura analogica tra due domini distinti
-        // Domini: Berlino (Q64) come source, Parigi (Q90) come target
-        System.out.println("\n=== DUAL-GRAPH ANALOGICAL MAPPING ===");
-        System.out.println("   Source: Berlino (Q64)");
-        System.out.println("   Target: Parigi (Q90)");
-        System.out.println("   Atteso: Scoperta della struttura condivisa");
-
-        // Crea engine separati per source e target (stessa ItemMemory condivisa)
-        GraphManager graphManagerSource = new GraphManager(wikidataEndpoint, new TripleExtractor());
-        InvestigationEngine engineSource = new InvestigationEngine(contextTarget, graphManagerSource, itemMemory, topologicalUpdater);
-
-        GraphManager graphManagerTarget = new GraphManager(wikidataEndpoint, new TripleExtractor());
-        InvestigationEngine engineTarget = new InvestigationEngine(contextTarget, graphManagerTarget, itemMemory, topologicalUpdater);
-
-        // Espandi entrambi i domini
-        String berlinUri = "http://www.wikidata.org/entity/Q64";
-        String parisUri = "http://www.wikidata.org/entity/Q90";
-
-        System.out.println("[*] Espansione dominio SOURCE (Berlino)...");
-        engineSource.expandAndProcess(ModelFactory.createDefaultModel().createResource(berlinUri));
-
-        System.out.println("[*] Espansione dominio TARGET (Parigi)...");
-        engineTarget.expandAndProcess(ModelFactory.createDefaultModel().createResource(parisUri));
-
-        // Estrai vettori dei nodi e delle triple
-        List<HDVector> sourceNodes = engineSource.getNodeVectors();
-        List<HDVector> sourceTriples = engineSource.getTripleVectors();
-        List<HDVector> targetNodes = engineTarget.getNodeVectors();
-        List<HDVector> targetTriples = engineTarget.getTripleVectors();
-
-        System.out.printf("   [*] Source nodes: %d, Source triples: %d\n", sourceNodes.size(), sourceTriples.size());
-        System.out.printf("   [*] Target nodes: %d, Target triples: %d\n", targetNodes.size(), targetTriples.size());
-
-        // Inizializza CellularAutomaton con mappatura analogica
-        // x_0 = sum(sourceNodes) ⊗ sum(targetNodes)
-        // w = ⊕(sourceTriples ⊗ targetTriples) per ogni coppia
-        HDVector dummyInitial = new HDVectorMapB();
-        CellularAutomaton analogicalCA = new CellularAutomaton(dummyInitial, engineSource, itemMemory);
-
-        System.out.println("[*] Inizializzazione stato analogico (Gayler formula)...");
-        analogicalCA.initializeAnalogicalState(sourceNodes, targetNodes, sourceTriples, targetTriples);
-
-        System.out.printf("   [*] x_t inizializzato con %d source nodes e %d target nodes bundle\n",
-            sourceNodes.size(), targetNodes.size());
-        System.out.printf("   [*] Matrice w calcolata con %d x %d = %d incroci\n",
-            sourceTriples.size(), targetTriples.size(),
-            sourceTriples.size() * targetTriples.size());
-
-        // Esegui alcuni step dell'automa
-        System.out.println("[*] Esecuzione 3 cicli di investigazione analogica...");
-        for (int i = 0; i < 3; i++) {
-            analogicalCA.runInvestigationStep();
-            System.out.printf("   [*] Step %d completato. Stato attuale similarità con contextTarget: %.4f\n",
-                i + 1, analogicalCA.getState().similarity(contextTarget));
-        }
-
-        System.out.println("\n   [INFO] La mappatura analogica è stata eseguita.");
-        System.out.println("   [INFO] Lo stato x_t contiene la rappresentazione vettoriale");
-        System.out.println("   [INFO] della struttura condivisa tra i due domini.");
     }
 }
