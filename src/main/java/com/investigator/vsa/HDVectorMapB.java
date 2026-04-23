@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Random;
 
 public class HDVectorMapB implements HDVector {
+    // CORREZIONE 1: Espansione dello spazio vettoriale per supportare l'SNR dei mega-vettori
     public static final int D = 100000;
     private final byte[] values;
 
@@ -12,7 +13,7 @@ public class HDVectorMapB implements HDVector {
         this.values = new byte[D];
     }
 
-    private HDVectorMapB(byte[] values) {
+    public HDVectorMapB(byte[] values) {
         this.values = Arrays.copyOf(values, values.length);
     }
 
@@ -35,7 +36,7 @@ public class HDVectorMapB implements HDVector {
         }
         byte[] result = new byte[D];
         for (int i = 0; i < D; i++) {
-            result[i] = (byte) (sum[i] >= 0 ? 1 : -1);
+            result[i] = (byte) (sum[i] >= 0 ? 1 : -1); // Signum: Normalizzazione implicita
         }
         return new HDVectorMapB(result);
     }
@@ -45,7 +46,7 @@ public class HDVectorMapB implements HDVector {
         HDVectorMapB o = (HDVectorMapB) other;
         byte[] result = new byte[D];
         for (int i = 0; i < D; i++) {
-            result[i] = (byte) (this.values[i] * o.values[i]);
+            result[i] = (byte) (this.values[i] * o.values[i]); // Hadamard product
         }
         return new HDVectorMapB(result);
     }

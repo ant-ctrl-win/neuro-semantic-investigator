@@ -1,8 +1,5 @@
 # Neuro-Semantic Investigator
 
-## Project Type
-Maven Java 17 project using Apache Jena for RDF/SPARQL and hyperdimensional vector computations.
-
 ## Build Commands
 ```bash
 mvn clean compile          # Clean and compile
@@ -13,7 +10,6 @@ mvn exec:java              # Run App.java (main entry point)
 ```
 
 ## Architecture
-
 **Main entry point:** `src/main/java/com/investigator/App.java`
 
 **Packages:**

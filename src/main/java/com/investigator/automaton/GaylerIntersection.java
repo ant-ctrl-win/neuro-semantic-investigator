@@ -64,6 +64,22 @@ public class GaylerIntersection {
         return new int[] { shift1, shift2 };
     }
 
+//    public HDVector intersect(HDVector X, HDVector Y) {
+//        HDVector result = null;
+//
+//        for (int i = 0; i < N_CHANNELS; i++) {
+//            HDVector Z_i = sigmaPiChannel(X, Y, i);
+//
+//            if (result == null) {
+//                result = Z_i;
+//            } else {
+//                result = result.bundle(Z_i);
+//            }
+//        }
+//
+//        return cleanUpMemory.cleanUp(result, 0.1);
+//    }
+
     public HDVector intersect(HDVector X, HDVector Y) {
         HDVector result = null;
 
@@ -73,11 +89,14 @@ public class GaylerIntersection {
             if (result == null) {
                 result = Z_i;
             } else {
+                // Il metodo bundle di HDVectorMapB applica già la funzione Segno
+                // per riportare il vettore nello spazio bipolare {-1, +1}.
                 result = result.bundle(Z_i);
             }
         }
 
-        return cleanUpMemory.cleanUp(result, 0.1);
+        // CORREZIONE: Lo stato di mapping NON va ripulito contro la memoria semantica!
+        return result;
     }
 
     private HDVector sigmaPiChannel(HDVector X, HDVector Y, int channelIndex) {
