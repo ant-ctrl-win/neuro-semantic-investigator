@@ -6,7 +6,7 @@ import java.util.Random;
 
 public class HDVectorMapB implements HDVector {
     // CORREZIONE 1: Espansione dello spazio vettoriale per supportare l'SNR dei mega-vettori
-    public static final int D = 100000;
+    public static final int D = 10000;
     private final byte[] values;
 
     public HDVectorMapB() {
