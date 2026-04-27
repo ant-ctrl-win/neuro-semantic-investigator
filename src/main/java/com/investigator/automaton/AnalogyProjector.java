@@ -22,24 +22,6 @@ public class AnalogyProjector {
      * Esegue la proiezione forzando la ricerca solo tra i candidati del dominio Target.
      * Risolve il problema dell'identità sorgente che "inquina" il risultato.
      */
-//    public ProjectionResult discoverInTarget(HDVector sourceVector, HDVector stabilizedState, Set<String> targetCandidates) {
-//        HDVector projected = project(sourceVector, stabilizedState);
-//
-//        double bestSim = -1.0;
-//        String bestKey = "UNKNOWN";
-//        List<Double> similarities = new ArrayList<>();
-//
-//        // Scansioniamo solo i nodi che appartengono al grafo Target
-//        for (String uri : targetCandidates) {
-//            HDVector candidate = targetMemory.getOrGenerate(uri);
-//            double sim = projected.similarity(candidate);
-//            similarities.add(sim);
-//
-//            if (sim > bestSim) {
-//                bestSim = sim;
-//                bestKey = uri;
-//            }o
-//        }
 
     public ProjectionResult discoverInTarget(String sourceUri, HDVector stabilizedState, Set<String> targetCandidates) {
         HDVector sourceVector = targetMemory.getOrGenerate(sourceUri);
