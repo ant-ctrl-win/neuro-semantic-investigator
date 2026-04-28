@@ -24,8 +24,17 @@ public class ItemMemory {
     private double lastBestSigma = 0.0;
     private String lastBestKey = null;
 
+    // LA NUOVA SOGLIA DINAMICA
+    private final double dynamicThresholdSigma;
+
     public ItemMemory(VectorGenerationStrategy strategy) {
         this.strategy = strategy;
+
+        // Calcolo della soglia dinamica basata sulle dimensioni dello spazio vettoriale.
+        // A D=10.000 sarà ~4.0, a D=100.000 sarà ~5.0.
+        this.dynamicThresholdSigma = Math.log10(HDVectorMapB.D);
+        System.out.printf("   [ItemMemory] Inizializzata con D=%d. Soglia di clean-up calcolata: %.2f σ\n",
+                HDVectorMapB.D, this.dynamicThresholdSigma);
     }
 
     public HDVector getOrGenerate(String uri) {
@@ -52,12 +61,12 @@ public class ItemMemory {
 
     // Clean-up specifico per i livelli intermedi dell'albero
     public HDVector cleanUpChunk(HDVector noisyChunk) {
-        return performStatisticalCleanUp(noisyChunk, chunkMemory, 4.0);
+        return performStatisticalCleanUp(noisyChunk, chunkMemory, this.dynamicThresholdSigma);
     }
 
     // Clean-up per le foglie (vettori atomici)
     public HDVector cleanUpRelative(HDVector noisyVector) {
-        return performStatisticalCleanUp(noisyVector, atomicMemory, 4.0);
+        return performStatisticalCleanUp(noisyVector, atomicMemory, this.dynamicThresholdSigma);
     }
 
     // Motore di Clean-Up Statistico Centralizzato

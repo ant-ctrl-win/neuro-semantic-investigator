@@ -87,12 +87,13 @@ public class TopologicalVectorUpdater {
     }
 
     private HDVector encodeTriple(Statement stmt, ItemMemory memory) {
+        HDVector vS = memory.getOrGenerate(stmt.getSubject().getURI());
         HDVector vP = memory.getOrGenerate(stmt.getPredicate().getURI());
         HDVector vO = stmt.getObject().isResource() ?
                 memory.getOrGenerate(stmt.getObject().asResource().getURI()) :
                 memory.getOrGenerate(stmt.getObject().asLiteral().getString());
 
-        // Pattern: P(1) ⊗ O(2)
-        return vP.permute(1).bind(vO.permute(2));
+        // Pattern: S ⊗ P(1) ⊗ O(2)
+        return vS.bind(vP.permute(1)).bind(vO.permute(2));
     }
 }

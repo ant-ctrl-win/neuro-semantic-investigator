@@ -1,199 +1,350 @@
 package com.investigator;
 
+import com.investigator.llm.OntologyTranslator;
 import com.investigator.vsa.*;
 import com.investigator.vsa.strategy.RandomGenerationStrategy;
 import com.investigator.vsa.strategy.TopologicalVectorUpdater;
 import com.investigator.jena.*;
 import com.investigator.engine.InvestigationEngine;
-import com.investigator.automaton.*;
 import org.apache.jena.rdf.model.*;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class App {
-    public static void main(String[] args) {
-        System.out.println("=== NEURO-SEMANTIC INVESTIGATOR: MISSION ANALOGY ===\n");
+public static void main(String[] args) {
+    System.out.println("=== NEURO-SEMANTIC INVESTIGATOR: LA VERA ANALOGIA ===");
+    System.out.println("=== Flusso: Risoluzione -> Allineamento Ontologico -> Scoperta VSA -> LLM -> Proiezione ===\n");
 
-        ItemMemory itemMemory = new ItemMemory(new RandomGenerationStrategy());
-        SparqlEndpoint wikidataEndpoint = new SparqlEndpoint("https://query.wikidata.org/sparql");
-        GraphManager graphManager = new GraphManager(wikidataEndpoint, new TripleExtractor());
-        TopologicalVectorUpdater topologicalUpdater = new TopologicalVectorUpdater();
+    ItemMemory itemMemory = new ItemMemory(new RandomGenerationStrategy());
+    OntologyTranslator translator = new OntologyTranslator();
 
-        String apollo11Uri = "http://www.wikidata.org/entity/Q43653";  // Apollo 11
-        String triesteUri = "http://www.wikidata.org/entity/Q850157";  // Batiscafo Trieste
-        String armstrongUri = "http://www.wikidata.org/entity/Q1615";  // Neil Armstrong
-        String crewMemberProp = "http://www.wikidata.org/entity/P1029"; // Ruolo: Crew Member
+    SparqlEndpoint wikidataEndpoint = new SparqlEndpoint("https://query.wikidata.org/sparql");
+    GraphManager graphManager = new GraphManager(wikidataEndpoint, new TripleExtractor());
+    TopologicalVectorUpdater topologicalUpdater = new TopologicalVectorUpdater();
 
-        Resource apolloResource = ModelFactory.createDefaultModel().createResource(apollo11Uri);
-        Resource triesteResource = ModelFactory.createDefaultModel().createResource(triesteUri);
+    EntityResolver resolver = new EntityResolver();
 
-        InvestigationEngine engine = new InvestigationEngine(new HDVectorMapB(), graphManager, itemMemory, topologicalUpdater);
+    System.out.println("[*] FASE 0: Risoluzione entità e profilazione ontologica...");
 
-        System.out.println("[*] Ingestione Apollo 11...");
-        engine.expandAndProcess(apolloResource);
+//    List<ResolvedEntity> apolloResults = resolver.resolve("Apollo 11", 1);
+//    List<ResolvedEntity> armstrongResults = resolver.resolve("Neil Armstrong", 1);
+//    List<ResolvedEntity> triesteResults = resolver.resolve("Bathyscaphe Trieste", 1);
 
-        System.out.println("[*] Ingestione Batiscafo Trieste...");
-        engine.expandAndProcess(triesteResource);
+//    List<ResolvedEntity> apolloResults = resolver.resolve("Apollo 11", 1);
+//    List<ResolvedEntity> armstrongResults = resolver.resolve("Neil Armstrong", 1);
+//    // Passiamo dal programma spaziale americano a quello sovietico!
+//    List<ResolvedEntity> targetResults = resolver.resolve("Vostok 1", 1);
 
-        Model localModel = engine.getGraphManager().getLocalModel();
+    System.out.println("[*] FASE 0: Risoluzione entità e profilazione ontologica...");
 
-        // 1. ESTRAZIONE E PULIZIA DEI RAMI (Solo Segnale Puro)
-        System.out.println("\n[*] Estrazione e validazione Chunk...");
-        List<HDVector> apolloBranches = extractCleanMacroBranches(itemMemory, apollo11Uri, localModel);
-        List<HDVector> triesteBranches = extractCleanMacroBranches(itemMemory, triesteUri, localModel);
+    List<ResolvedEntity> apolloResults = resolver.resolve("Apollo 11", 1);
+    List<ResolvedEntity> armstrongResults = resolver.resolve("Neil Armstrong", 1);
 
-        System.out.printf("    -> Rami puliti estratti: Apollo (%d), Trieste (%d)\n", apolloBranches.size(), triesteBranches.size());
+    // CHIEDIAMO AL RESOLVER DI TROVARE L'APOLLO 13!
+    List<ResolvedEntity> targetResults = resolver.resolve("Apollo 13", 1);
 
-        // 2. AUTOMA CELLULARE E MAPPING
-        System.out.println("\n[*] Inizializzazione Gayler Mapping e Rilassamento Automa...");
-        CellularAutomaton ca = new CellularAutomaton(new HDVectorMapB(), engine, itemMemory);
+    if (apolloResults.isEmpty() || armstrongResults.isEmpty() || targetResults.isEmpty()) {
+        System.out.println("   [ERRORE CRITICO] Una o più entità non sono state trovate dal motore di ricerca.");
+        return;
+    }
 
-        ca.initializeAnalogicalState(
-                itemMemory.getTreeVector(apollo11Uri),
-                itemMemory.getTreeVector(triesteUri),
-                apolloBranches, // Ora W incrocia solo rami puri!
-                triesteBranches
-        );
+    ResolvedEntity apolloEntity = apolloResults.get(0);
+    ResolvedEntity armstrongEntity = armstrongResults.get(0);
+    ResolvedEntity triesteEntity = targetResults.get(0); // Manteniamo il nome variabile per non rompere il resto
 
-        for (int i = 0; i < 50; i++) ca.step();
-        HDVector x_t = ca.getState(); // x_t ora mappa topologicamente i Chunk Apollo -> Chunk Trieste
+    // Rinominiamo la variabile locale per mantenere la coerenza col resto del codice
+    ResolvedEntity targetEntity = triesteEntity;
 
-        System.out.println("\n=======================================================");
-        System.out.println("   TRADUZIONE ANALOGICA: UNBINDING STEP-BY-STEP        ");
-        System.out.println("=======================================================");
-
-        HDVector apolloRoot = itemMemory.getTreeVector(apollo11Uri);
-        HDVector roleCrew = itemMemory.getOrGenerate(crewMemberProp);
-
-        // --- STEP 1: ESTRAZIONE RAMO SORGENTE ---
-//        System.out.println("[1] Estraggo il ramo 'Equipaggio' dall'Apollo 11...");
-//        HDVector noisyApolloCrew = apolloRoot.permute(-100).bind(roleCrew);
-//        HDVector cleanApolloCrew = itemMemory.cleanUpChunk(noisyApolloCrew);
+//    if (apolloResults.isEmpty() || armstrongResults.isEmpty() || targetResults.isEmpty()) {
+//        System.out.println("   [ERRORE CRITICO] Una o più entità non sono state trovate dal motore di ricerca.");
+//        return;
+//    }
 //
-//        if (cleanApolloCrew == null) {
-//            System.out.println("   [ERRORE] Il ramo 'Equipaggio' è andato perso nel rumore. Abbasso soglia SNR?");
-//            return;
-//        }
-        // --- STEP 1: ESTRAZIONE RAMO SORGENTE ---
-        System.out.println("[1] Troviamo l'URI corretta per l'equipaggio e estraiamo il ramo...");
+//    ResolvedEntity apolloEntity = apolloResults.get(0);
+//    ResolvedEntity armstrongEntity = armstrongResults.get(0);
+//    ResolvedEntity targetEntity = targetResults.get(0);
 
-        String actualCrewProp = null;
-        // Cerchiamo dinamicamente la proprietà che contiene P1029 (crew member) o P527 (has part/crew)
-        for(Statement s : localModel.listStatements(apolloResource, null, (RDFNode)null).toList()) {
-            String predUri = s.getPredicate().getURI();
-            if (predUri.contains("P1029") || predUri.contains("P527")) {
-                actualCrewProp = predUri;
-                break;
+    System.out.println("\n=======================================================");
+    System.out.println("   REPORT ONTOLOGICO PRELIMINARE");
+    System.out.println("=======================================================");
+    System.out.printf("   SORGENTE  : %-25s  Tipo: %s%n", apolloEntity.entityLabel(), apolloEntity.classLabel());
+    System.out.printf("   OGG. NOTO : %-25s  Tipo: %s%n", armstrongEntity.entityLabel(), armstrongEntity.classLabel());
+    System.out.printf("   TARGET 1  : %-25s  Tipo: %s%n", targetEntity.entityLabel(), targetEntity.classLabel());
+
+    String apollo11Uri = apolloEntity.entityUri();
+    String armstrongUri = armstrongEntity.entityUri();
+    String currentTargetUri = targetEntity.entityUri();
+    String currentTargetLabel = targetEntity.entityLabel();
+
+    // ------------------------------------------------------------------------------------------------
+    // LA MAGIA: ALLINEAMENTO ONTOLOGICO AUTOMATICO (Graph + LLM)
+    // ------------------------------------------------------------------------------------------------
+    if (!apolloEntity.classLabel().equals(targetEntity.classLabel())) {
+        System.out.println("\n   [ALLARME ASIMMETRIA] Le ontologie non coincidono ('" + apolloEntity.classLabel() + "' vs '" + targetEntity.classLabel() + "').");
+        System.out.println("   L'Investigatore interroga l'inconscio collettivo (Wikidata) per trovare una missione affine...");
+
+        // Chiediamo a Wikidata tutti i nodi collegati al Trieste tramite le relazioni tipiche degli eventi.
+        // P793 = significant event (Out), P2283 = uses (In), P516 = equipment (In)
+        String sparqlQuery =
+                "PREFIX wdt: <http://www.wikidata.org/prop/direct/> " +
+                        "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> " +
+                        "SELECT DISTINCT ?event ?eventLabel ?classLabel WHERE { " +
+                        "  { <" + currentTargetUri + "> wdt:P793 ?event . } " +
+                        "  UNION { ?event wdt:P2283 <" + currentTargetUri + "> . } " +
+                        "  UNION { ?event wdt:P516 <" + currentTargetUri + "> . } " +
+                        "  OPTIONAL { ?event wdt:P31 ?class . ?class rdfs:label ?classLabel . FILTER(lang(?classLabel)='en') } " +
+                        "  ?event rdfs:label ?eventLabel . FILTER(lang(?eventLabel)='en') " +
+                        "} LIMIT 20";
+
+        Map<String, String> candidateOntologies = new HashMap<>();
+        Map<String, String> candidateLabels = new HashMap<>();
+
+        try {
+            org.apache.jena.query.Query query = org.apache.jena.query.QueryFactory.create(sparqlQuery);
+            try (org.apache.jena.query.QueryExecution qexec = org.apache.jena.query.QueryExecution.service("https://query.wikidata.org/sparql")
+                    .query(query)
+                    .httpHeader("User-Agent", "NeuroSemanticInvestigator/1.0 (ifts-project@example.com)")
+                    .build()) {
+                org.apache.jena.query.ResultSet results = qexec.execSelect();
+                while (results.hasNext()) {
+                    org.apache.jena.query.QuerySolution soln = results.next();
+                    String evUri = soln.getResource("event").getURI();
+                    String evLabel = soln.getLiteral("eventLabel").getString();
+                    String clLabel = soln.contains("classLabel") ? soln.getLiteral("classLabel").getString() : "event";
+
+                    // Creiamo una chiave composita per aiutare l'LLM: "Classe: Nome Entità"
+                    candidateOntologies.put(evUri, clLabel + ": " + evLabel);
+                    candidateLabels.put(evUri, evLabel);
+                }
             }
+        } catch (Exception e) {
+            System.out.println("   [ERRORE SPARQL] " + e.getMessage());
         }
 
-        if (actualCrewProp == null) {
-            System.out.println("   [CRITICO] Nessuna proprietà per l'equipaggio trovata nel grafo locale dell'Apollo 11.");
-            System.out.println("   Proprietà disponibili (prime 5):");
-            localModel.listStatements(apolloResource, null, (RDFNode)null).toList().stream()
-                    .map(s -> s.getPredicate().getURI())
-                    .distinct().limit(5).forEach(System.out::println);
-            return;
-        }
+        if (!candidateOntologies.isEmpty()) {
+            System.out.println("   [LLM] Valuto " + candidateOntologies.size() + " candidati topologici rispetto a '" + apolloEntity.classLabel() + "'...");
 
-        System.out.println("   -> URI Predicato trovata: " + actualCrewProp);
-        roleCrew = itemMemory.getOrGenerate(actualCrewProp);
+            // L'LLM confronterà "human spaceflight" con cose come "expedition: Project Nekton" e "key event (ships): ship launching"
+            String bestEventUri = translator.findSemanticEquivalent(apolloEntity.classLabel(), candidateOntologies, 0.20);
 
-        HDVector noisyApolloCrew = apolloRoot.permute(-100).bind(roleCrew);
-
-        // Eseguiamo il Clean-Up (vediamo anche le metriche interne)
-        HDVector cleanApolloCrew = itemMemory.cleanUpChunk(noisyApolloCrew);
-
-        if (cleanApolloCrew == null) {
-            System.out.println("   [ERRORE] Ramo perso. Top match: " + itemMemory.getLastBestKey() +
-                    " con confidenza " + String.format("%.2f", itemMemory.getLastBestSigma()) + " σ");
-            return;
-        }
-        System.out.println("   -> Ramo estratto e ripulito con successo! (Z-Score: " +
-                String.format("%.2f", itemMemory.getLastBestSigma()) + " σ)");
-
-// --- STEP 2: TRADUZIONE NEL DOMINIO TARGET ---
-        System.out.println("\n[2] Traduco il ramo nel dominio Trieste usando lo stato dell'automa...");
-        HDVector noisyTriesteCrew = x_t.bind(cleanApolloCrew);
-
-        System.out.println("   [DIAGNOSTICA] Analizzo la proiezione verso i 29 rami del Trieste...");
-        double bestSim = -1.0;
-        HDVector bestTriesteBranchRaw = null;
-
-        // Misuriamo manualmente dove sta puntando l'automa prima del Clean-Up
-        for (HDVector tBranch : triesteBranches) {
-            double sim = noisyTriesteCrew.similarity(tBranch);
-            if (sim > bestSim) {
-                bestSim = sim;
-                bestTriesteBranchRaw = tBranch;
+            if (bestEventUri != null) {
+                currentTargetUri = bestEventUri;
+                currentTargetLabel = candidateLabels.get(bestEventUri);
+                System.out.println("   [COMPENSAZIONE RIUSCITA] L'LLM ha isolato l'evento topologicamente corretto!");
+                System.out.printf("   NUOVO TARGET: %-25s%n", currentTargetLabel);
+            } else {
+                System.out.println("   [FALLIMENTO] L'LLM non ha trovato nessun evento candidato affine a " + apolloEntity.classLabel());
+                return;
             }
-        }
-        System.out.printf("   -> Il vettore tradotto punta al miglior candidato grezzo con similarità: %.4f\n", bestSim);
-
-        // Pulizia ufficiale
-        HDVector cleanTriesteCrew = itemMemory.cleanUpChunk(noisyTriesteCrew);
-
-        if (cleanTriesteCrew == null) {
-            System.out.println("   [ERRORE] Il segnale è sotto la soglia dei 4.0 σ (Z-Score: " + String.format("%.2f", itemMemory.getLastBestSigma()) + " σ)");
-            System.out.println("   [INDAGINE] Ma quali proprietà ha davvero il Trieste in Wikidata?");
-
-            localModel.listStatements(triesteResource, null, (RDFNode)null).toList().stream()
-                    .map(s -> s.getPredicate().getURI())
-                    .distinct()
-                    .forEach(uri -> System.out.println("      - " + uri));
-
-            System.out.println("\n   Se non vedi P1029 (crew) o simili qui sopra, il target non esiste nei dati!");
-            return;
-        }
-
-        System.out.println("   -> Ramo analogo trovato e validato nel Trieste! (Z-Score: " + String.format("%.2f", itemMemory.getLastBestSigma()) + " σ)");
-
-        // --- STEP 3: UNBINDING DELLA FOGLIA ---
-        System.out.println("\n[3] Interrogo il ramo analogo per estrarre l'analogo di Armstrong...");
-        // Disfiamo P(1) e shiftiamo di -2
-        HDVector noisyAnalogueObject = cleanTriesteCrew.bind(roleCrew.permute(1)).permute(-2);
-
-        // --- STEP 4: CLEAN-UP FINALE ---
-        HDVector finalAnalogue = itemMemory.cleanUpRelative(noisyAnalogueObject);
-
-        if (finalAnalogue != null) {
-            System.out.println("\n[!] RISULTATO ANALOGICO ECCELLENTE TROVATO:");
-            System.out.println("    Neil Armstrong (Apollo)  ===>  " + itemMemory.getLastBestKey() + " (Trieste)");
-            System.out.println("    Confidenza Statistica:   " + String.format("%.2f", itemMemory.getLastBestSigma()) + " σ");
         } else {
-            System.out.println("\n[?] Ramo trovato, ma nessun individuo chiaro all'interno (Z-Score: " + String.format("%.2f", itemMemory.getLastBestSigma()) + " σ)");
+            System.out.println("   [FALLIMENTO] Il grafo locale non contiene collegamenti a eventi o missioni noti.");
+            return;
+        }
+    }
+    System.out.println("=======================================================\n");
+
+    InvestigationEngine engine = new InvestigationEngine(new HDVectorMapB(), graphManager, itemMemory, topologicalUpdater);
+
+    System.out.println("[*] Ingestione e vettorizzazione grafi in corso...");
+    Resource apolloResource = ModelFactory.createDefaultModel().createResource(apollo11Uri);
+    Resource targetResource = ModelFactory.createDefaultModel().createResource(currentTargetUri); // Usiamo il Target Allineato!
+
+    engine.expandAndProcess(apolloResource);
+    engine.expandAndProcess(targetResource);
+    Model localModel = engine.getGraphManager().getLocalModel();
+
+    HDVector apolloRoot = itemMemory.getTreeVector(apollo11Uri);
+    HDVector armstrongVector = itemMemory.getOrGenerate(armstrongUri);
+
+    System.out.println("\n=======================================================");
+    System.out.println("   STEP 1: DEDUZIONE DEL RUOLO SORGENTE (VSA)          ");
+    System.out.println("=======================================================");
+
+    String sourceRoleUri = null;
+    double bestHypothesisScore = -1.0;
+
+    HDVector subjectVector = itemMemory.getOrGenerate(apollo11Uri);
+    Set<Property> apolloProps = new HashSet<>();
+    localModel.listStatements(apolloResource, null, (RDFNode) null).forEachRemaining(s -> apolloProps.add(s.getPredicate()));
+
+    for (Property prop : apolloProps) {
+        String propUri = prop.getURI();
+        if (isMetadata(propUri)) continue;
+
+        HDVector candidateRole = itemMemory.getOrGenerate(propUri);
+        HDVector noisyBranch = apolloRoot.permute(-100).bind(candidateRole);
+        HDVector cleanBranch = itemMemory.cleanUpChunk(noisyBranch);
+
+        if (cleanBranch != null) {
+            HDVector noisyObject = cleanBranch.bind(subjectVector).bind(candidateRole.permute(1)).permute(-2);
+            double rawSimilarity = noisyObject.similarity(armstrongVector);
+
+            if (rawSimilarity > 0.05 && rawSimilarity > bestHypothesisScore) {
+                bestHypothesisScore = rawSimilarity;
+                sourceRoleUri = propUri;
+            }
         }
     }
 
-    private static List<HDVector> extractCleanMacroBranches(ItemMemory memory, String entityUri, Model localGraph) {
-        Resource entityRes = localGraph.getResource(entityUri);
-        HDVector megaVector = memory.getTreeVector(entityUri);
-        List<HDVector> cleanBranches = new ArrayList<>();
+    if (sourceRoleUri == null || bestHypothesisScore < 0.05) {
+        System.out.println("   [ERRORE] La VSA non riesce a trovare Armstrong nel vettore dell'Apollo 11.");
+        return;
+    }
 
-        Set<Property> actualProperties = new HashSet<>();
-        localGraph.listStatements(entityRes, null, (RDFNode) null).forEachRemaining(s -> {
-            if (!isMetadata(s.getPredicate().getURI())) actualProperties.add(s.getPredicate());
-        });
+    String sourceRoleLabel = fetchLabelFromWikidata(sourceRoleUri);
+    System.out.printf("   -> DEDUZIONE COMPLETATA: Armstrong è legato tramite '%s' (Sim: %.2f)\n", sourceRoleLabel, bestHypothesisScore);
 
-        for (Property prop : actualProperties) {
-            HDVector role = memory.getOrGenerate(prop.getURI());
+    System.out.println("\n=======================================================");
+    System.out.println("   STEP 2: IL PONTE ANALOGICO (LLM)                    ");
+    System.out.println("=======================================================");
 
-            // Estrazione di base (Inversa Simpkin)
-            HDVector noisyBranchContent = megaVector.permute(-100).bind(role);
+    // Attenzione qui: estraiamo le proprietà dal Target Allineato!
+    Map<String, String> targetProperties = extractPropertyLabels(targetResource, localModel);
+    System.out.println("   -> Chiedo all'LLM di tradurre '" + sourceRoleLabel + "' nel dominio di " + currentTargetLabel + "...");
 
-            // CLEAN-UP DI LIVELLO 1: Filtriamo il rumore e recuperiamo il Chunk perfetto
-            HDVector cleanChunk = memory.cleanUpChunk(noisyBranchContent);
+    String targetRoleUri = translator.findSemanticEquivalent(sourceRoleLabel, targetProperties, 0.40);
 
-            // Aggiungiamo alla lista SOLO i chunk che sono sopravvissuti statisticamente
-            if (cleanChunk != null) {
-                cleanBranches.add(cleanChunk);
+    if (targetRoleUri == null) {
+        System.out.println("   [ERRORE] Il traduttore non ha trovato un equivalente per '" + sourceRoleLabel + "'. Analogia fallita.");
+        return;
+    }
+    String targetRoleLabel = fetchLabelFromWikidata(targetRoleUri);
+
+    System.out.println("\n=======================================================");
+    System.out.println("   STEP 3 & 4: PROIEZIONE E ESTRAZIONE TARGET (VSA)    ");
+    System.out.println("=======================================================");
+
+    HDVector targetRoot = itemMemory.getTreeVector(currentTargetUri);
+    HDVector targetRole = itemMemory.getOrGenerate(targetRoleUri);
+    HDVector targetSubject = itemMemory.getOrGenerate(currentTargetUri);
+
+    System.out.println("   -> Uso la chiave tradotta ('" + targetRoleLabel + "') per aprire il vettore bersaglio...");
+    HDVector noisyTargetBranch = targetRoot.permute(-100).bind(targetRole);
+    HDVector cleanTargetBranch = itemMemory.cleanUpChunk(noisyTargetBranch);
+
+    if (cleanTargetBranch == null) {
+        System.out.println("   [ERRORE] Il ramo estratto si è disintegrato nel rumore.");
+        return;
+    }
+
+    HDVector noisyTargetObject = cleanTargetBranch.bind(targetSubject).bind(targetRole.permute(1)).permute(-2);
+    HDVector finalAnalogue = itemMemory.cleanUpRelative(noisyTargetObject);
+
+    if (finalAnalogue != null) {
+        System.out.println("\n[!] ANALOGIA RISOLTA CON SUCCESSO:");
+        System.out.println("    Neil Armstrong  sta a  Apollo 11");
+        System.out.println("    COME");
+
+        String humanReadableResult = fetchLabelFromWikidata(itemMemory.getLastBestKey());
+        System.out.println("    " + humanReadableResult + "  sta a  " + currentTargetLabel);
+        System.out.println("\n    [Logica Applicata]: " + sourceRoleLabel + " ===> " + targetRoleLabel);
+        System.out.println("    [Confidenza VSA]: " + String.format("%.2f", itemMemory.getLastBestSigma()) + " σ");
+    } else {
+        System.out.println("\n[?] Ramo trovato, ma nessun individuo chiaro all'interno.");
+    }
+}
+
+    private static String fetchDescriptionFromWikidata(String entityUri) {
+        String sparqlQuery =
+                "PREFIX schema: <http://schema.org/> " +
+                        "SELECT ?desc WHERE { " +
+                        "  <" + entityUri + "> schema:description ?desc . " +
+                        "  FILTER (lang(?desc) = 'en') " +
+                        "} LIMIT 1";
+
+        try {
+            org.apache.jena.query.Query query = org.apache.jena.query.QueryFactory.create(sparqlQuery);
+            try (org.apache.jena.query.QueryExecution qexec = org.apache.jena.query.QueryExecution.service("https://query.wikidata.org/sparql")
+                    .query(query)
+                    .httpHeader("User-Agent", "NeuroSemanticInvestigator/1.0 (ifts-project@example.com)")
+                    .build()) {
+
+                org.apache.jena.query.ResultSet results = qexec.execSelect();
+                if (results.hasNext()) {
+                    return results.nextSolution().getLiteral("desc").getString();
+                }
             }
+        } catch (Exception e) {
+            System.err.println("   [AVVISO] Errore nell'estrazione della descrizione: " + e.getMessage());
         }
-        return cleanBranches;
+        return "";
+    }
+
+    private static Map<String, String> extractPropertyLabels(Resource entity, Model localGraph) {
+        Map<String, String> labels = new HashMap<>();
+        Set<Property> outgoingProps = new HashSet<>();
+        Set<Property> incomingProps = new HashSet<>();
+
+        // 1. FIGLI (Outgoing edges: Entità -> Predicato -> Oggetto)
+        localGraph.listStatements(entity, null, (RDFNode) null).forEachRemaining(s -> outgoingProps.add(s.getPredicate()));
+
+        // 2. GENITORI (Incoming edges: Soggetto -> Predicato -> Entità)
+        localGraph.listStatements(null, null, entity).forEachRemaining(s -> incomingProps.add(s.getPredicate()));
+
+        System.out.println("   [INDAGINE ONTOLOGICA] Inventario delle proprietà del target:");
+
+        System.out.println("   --- PROPRIETÀ IN USCITA (I Figli) ---");
+        for (Property prop : outgoingProps) {
+            String uri = prop.getURI();
+            // IL FIX: Ignoriamo i metadati E ignoriamo i nodi intermedi (teniamo solo le proprietà "direct")
+            if (isMetadata(uri) || !uri.contains("/direct/")) continue;
+
+            String label = fetchLabelFromWikidata(uri);
+            labels.put(uri, label);
+            System.out.println("      - [OUT] " + uri + "  --->  Label: '" + label + "'");
+        }
+
+        System.out.println("   --- PROPRIETÀ IN ENTRATA (I Genitori) ---");
+        for (Property prop : incomingProps) {
+            String uri = prop.getURI();
+            // IL FIX ANCHE QUI
+            if (isMetadata(uri) || !uri.contains("/direct/")) continue;
+
+            if (!labels.containsKey(uri)) {
+                String label = fetchLabelFromWikidata(uri);
+                labels.put(uri, label);
+            }
+            System.out.println("      - [IN]  " + uri + "  --->  Label: '" + labels.get(uri) + "'");
+        }
+
+        return labels;
+    }
+
+    private static String fetchLabelFromWikidata(String uri) {
+        if (!uri.startsWith("http://www.wikidata.org/")) {
+            return uri.replace("_", " ");
+        }
+
+        // Pulizia aggressiva di tutti i possibili namespace di Wikidata
+        String entityUri = uri.replace("/prop/direct-normalized/", "/entity/")
+                .replace("/prop/direct/", "/entity/")
+                .replace("/prop/statement/", "/entity/")
+                .replace("/prop/", "/entity/");
+
+        String sparqlQuery =
+                "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> " +
+                        "SELECT ?label WHERE { " +
+                        "  <" + entityUri + "> rdfs:label ?label . " +
+                        "  FILTER (lang(?label) = 'en') " +
+                        "} LIMIT 1";
+
+        try {
+            org.apache.jena.query.Query query = org.apache.jena.query.QueryFactory.create(sparqlQuery);
+            try (org.apache.jena.query.QueryExecution qexec = org.apache.jena.query.QueryExecution.service("https://query.wikidata.org/sparql")
+                    .query(query)
+                    .httpHeader("User-Agent", "NeuroSemanticInvestigator/1.0 (ifts-project@example.com)")
+                    .build()) {
+                org.apache.jena.query.ResultSet results = qexec.execSelect();
+                if (results.hasNext()) return results.nextSolution().getLiteral("label").getString();
+            }
+        } catch (Exception e) { /* Silenzioso */ }
+
+        // Fallback: se fallisce, restituiamo almeno il codice
+        String[] parts = uri.split("/");
+        return parts[parts.length - 1];
     }
 
     private static boolean isMetadata(String uri) {
-        return uri.contains("P18") || uri.contains("P373") || uri.contains("P2002") || uri.contains("P2013");
+        return uri.contains("P18") || uri.contains("P373") || uri.contains("P2002") || uri.contains("P2013") || uri.contains("P137");
     }
 }

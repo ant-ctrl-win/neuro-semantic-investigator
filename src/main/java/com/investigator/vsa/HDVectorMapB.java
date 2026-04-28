@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Random;
 
 public class HDVectorMapB implements HDVector {
-    // CORREZIONE 1: Espansione dello spazio vettoriale per supportare l'SNR dei mega-vettori
     public static final int D = 10000;
     private final byte[] values;
 
@@ -35,8 +34,11 @@ public class HDVectorMapB implements HDVector {
             }
         }
         byte[] result = new byte[D];
+        Random tieBreaker = new Random();
         for (int i = 0; i < D; i++) {
-            result[i] = (byte) (sum[i] >= 0 ? 1 : -1); // Signum: Normalizzazione implicita
+            if (sum[i] > 0) result[i] = 1;
+            else if (sum[i] < 0) result[i] = -1;
+            else result[i] = (byte) (tieBreaker.nextBoolean() ? 1 : -1);
         }
         return new HDVectorMapB(result);
     }
