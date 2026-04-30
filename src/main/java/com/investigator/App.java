@@ -26,22 +26,14 @@ public static void main(String[] args) {
 
     System.out.println("[*] FASE 0: Risoluzione entità e profilazione ontologica...");
 
-//    List<ResolvedEntity> apolloResults = resolver.resolve("Apollo 11", 1);
-//    List<ResolvedEntity> armstrongResults = resolver.resolve("Neil Armstrong", 1);
-//    List<ResolvedEntity> triesteResults = resolver.resolve("Bathyscaphe Trieste", 1);
 
-//    List<ResolvedEntity> apolloResults = resolver.resolve("Apollo 11", 1);
-//    List<ResolvedEntity> armstrongResults = resolver.resolve("Neil Armstrong", 1);
-//    // Passiamo dal programma spaziale americano a quello sovietico!
-//    List<ResolvedEntity> targetResults = resolver.resolve("Vostok 1", 1);
-
-    System.out.println("[*] FASE 0: Risoluzione entità e profilazione ontologica...");
-
-    List<ResolvedEntity> apolloResults = resolver.resolve("Apollo 11", 1);
-    List<ResolvedEntity> armstrongResults = resolver.resolve("Neil Armstrong", 1);
+    List<ResolvedEntity> apolloResults = resolver.resolve("Amazon", 1);
+    List<ResolvedEntity> armstrongResults = resolver.resolve("Brazil", 1);
 
     // CHIEDIAMO AL RESOLVER DI TROVARE L'APOLLO 13!
-    List<ResolvedEntity> targetResults = resolver.resolve("Apollo 13", 1);
+    // USS Enterprise
+//    List<ResolvedEntity> targetResults = resolver.resolve("Apollo 13", 1);
+    List<ResolvedEntity> targetResults = resolver.resolve("Nile", 1);
 
     if (apolloResults.isEmpty() || armstrongResults.isEmpty() || targetResults.isEmpty()) {
         System.out.println("   [ERRORE CRITICO] Una o più entità non sono state trovate dal motore di ricerca.");
@@ -55,14 +47,6 @@ public static void main(String[] args) {
     // Rinominiamo la variabile locale per mantenere la coerenza col resto del codice
     ResolvedEntity targetEntity = triesteEntity;
 
-//    if (apolloResults.isEmpty() || armstrongResults.isEmpty() || targetResults.isEmpty()) {
-//        System.out.println("   [ERRORE CRITICO] Una o più entità non sono state trovate dal motore di ricerca.");
-//        return;
-//    }
-//
-//    ResolvedEntity apolloEntity = apolloResults.get(0);
-//    ResolvedEntity armstrongEntity = armstrongResults.get(0);
-//    ResolvedEntity targetEntity = targetResults.get(0);
 
     System.out.println("\n=======================================================");
     System.out.println("   REPORT ONTOLOGICO PRELIMINARE");
