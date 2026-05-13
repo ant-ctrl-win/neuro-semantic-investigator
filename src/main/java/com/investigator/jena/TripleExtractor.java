@@ -85,7 +85,7 @@ public class TripleExtractor {
             Query query = QueryFactory.create(sparqlQuery);
             try (QueryExecution qexec = QueryExecution.service(endpointUrl)
                     .query(query)
-                    .httpHeader("User-Agent", "NeuroSemanticInvestigator/1.0 (ifts-project@example.com)")
+                    .httpHeader("User-Agent", "NeuroSemanticInvestigator/1.0 (acrispino10@gmail.com)")
                     .build()) {
                 qexec.execConstruct(model);
             }

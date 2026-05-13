@@ -31,7 +31,7 @@ public class AppDis {
         List<ResolvedEntity> armstrongResults = resolver.resolve("Neil Armstrong", 1);
 
         // IL TARGET: Tiriamo giù i TOP 5 per il Nilo per evitare il Popularity Bias!
-        List<ResolvedEntity> targetResults = resolver.resolve("Vostok 1", 10);
+        List<ResolvedEntity> targetResults = resolver.resolve("Vostok 1", 5);
 
         if (apolloResults.isEmpty() || armstrongResults.isEmpty() || targetResults.isEmpty()) {
             System.out.println("   [ERRORE CRITICO] Una o più entità non sono state trovate dal motore di ricerca.");

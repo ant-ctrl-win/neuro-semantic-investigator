@@ -7,7 +7,7 @@ import java.util.List;
 public class EntityResolver {
 
     private static final String SPARQL_ENDPOINT = "https://query.wikidata.org/sparql";
-    private static final String USER_AGENT = "NeuroSemanticInvestigator/1.0 (ifts-project@example.com)";
+    private static final String USER_AGENT = "NeuroSemanticInvestigator/1.0 (acrispino10@gmail.com)";
 
     private static final String SEARCH_QUERY =
             "PREFIX wdt: <http://www.wikidata.org/prop/direct/>\n" +
