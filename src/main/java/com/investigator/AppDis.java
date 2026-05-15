@@ -27,11 +27,11 @@ public class AppDis {
         System.out.println("[*] FASE 0: Risoluzione entità e profilazione ontologica...");
 
         // SORGENTE e OGGETTO NOTO
-        List<ResolvedEntity> apolloResults = resolver.resolve("Neil Armstrong", 1);
-        List<ResolvedEntity> armstrongResults = resolver.resolve("Apollo 11", 1);
+        List<ResolvedEntity> apolloResults = resolver.resolve("Amleto", 1);
+        List<ResolvedEntity> armstrongResults = resolver.resolve("William Shakespeare", 1);
 
         // IL TARGET: Tiriamo giù i TOP 5 per il Nilo per evitare il Popularity Bias!
-        List<ResolvedEntity> targetResults = resolver.resolve("Vostok 1", 5);
+        List<ResolvedEntity> targetResults = resolver.resolve("Lacrimosa", 5);
 
         if (apolloResults.isEmpty() || armstrongResults.isEmpty() || targetResults.isEmpty()) {
             System.out.println("   [ERRORE CRITICO] Una o più entità non sono state trovate dal motore di ricerca.");
@@ -61,8 +61,8 @@ public class AppDis {
         // ------------------------------------------------------------------------------------------------
         // ALLINEAMENTO ONTOLOGICO AUTOMATICO (Graph + Encoder-Embedding)
         // ------------------------------------------------------------------------------------------------
-        if (!apolloEntity.classLabel().equals(targetEntity.classLabel())) {
-            System.out.println("\n   [ALLARME ASIMMETRIA] Le ontologie non coincidono ('" + apolloEntity.classLabel() + "' vs '" + targetEntity.classLabel() + "').");
+        if (!translator.areClassesCompatible(apolloEntity.classLabel(), targetEntity.classLabel(), 0.35)) {
+            System.out.println("\n   [ALLARME ASIMMETRIA] Le ontologie sono semanticamente distanti ('" + apolloEntity.classLabel() + "' vs '" + targetEntity.classLabel() + "').");
             System.out.println("   L'Investigatore interroga l'inconscio collettivo (Wikidata) per trovare un nodo affine...");
 
             String sparqlQuery =
@@ -176,9 +176,15 @@ public class AppDis {
         System.out.println("=======================================================");
 
         Map<String, String> targetProperties = extractPropertyLabels(targetResource, localModel);
-        System.out.println("   -> Chiedo all'Embedding di tradurre '" + sourceRoleLabel + "' nel dominio di " + currentTargetLabel + "...");
 
-        String targetRoleUri = translator.findSemanticEquivalent(sourceRoleLabel, targetProperties, 0.40);
+        // Arricchiamo le label con il tipo atteso della proprietà (es. "composer [expects: human]")
+        Map<String, String> enrichedProperties = translator.enrichLabelsWithExpectedTypes(targetProperties);
+
+        System.out.println("   -> Chiedo all'Embedding di tradurre '" + sourceRoleLabel + "' nel dominio di " + currentTargetLabel + "...");
+        System.out.println("   -> (Proprietà arricchite con tipo atteso per matching strutturale)");
+
+        String targetRoleUri = translator.findSemanticEquivalent(
+                sourceRoleLabel, sourceRoleUri, enrichedProperties, 0.35);
 
         if (targetRoleUri == null) {
             System.out.println("   [ERRORE] Il traduttore non ha trovato un equivalente per '" + sourceRoleLabel + "'. Analogia fallita.");
