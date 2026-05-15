@@ -25,6 +25,15 @@ public class HDVectorMapB implements HDVector {
         return v;
     }
 
+    public static HDVectorMapB generateSeeded(long seed) {
+        HDVectorMapB v = new HDVectorMapB();
+        Random rnd = new Random(seed);
+        for (int i = 0; i < D; i++) {
+            v.values[i] = (byte) (rnd.nextBoolean() ? 1 : -1);
+        }
+        return v;
+    }
+
     public static HDVector bundleSimultaneous(List<HDVector> vectors) {
         int[] sum = new int[D];
         for (HDVector v : vectors) {
@@ -34,7 +43,7 @@ public class HDVectorMapB implements HDVector {
             }
         }
         byte[] result = new byte[D];
-        Random tieBreaker = new Random();
+        Random tieBreaker = new Random(42L);
         for (int i = 0; i < D; i++) {
             if (sum[i] > 0) result[i] = 1;
             else if (sum[i] < 0) result[i] = -1;
@@ -57,7 +66,7 @@ public class HDVectorMapB implements HDVector {
     public HDVector bundle(HDVector other) {
         HDVectorMapB o = (HDVectorMapB) other;
         byte[] result = new byte[D];
-        Random tieBreaker = new Random();
+        Random tieBreaker = new Random(42L);
         for (int i = 0; i < D; i++) {
             int sum = this.values[i] + o.values[i];
             if (sum > 0) result[i] = 1;
