@@ -13,7 +13,7 @@ import java.util.*;
 public class AppDis {
     public static void main(String[] args) {
         System.out.println("=== NEURO-SEMANTIC INVESTIGATOR: LA VERA ANALOGIA ===");
-        System.out.println("=== Flusso: Risoluzione -> Reranking -> Scoperta VSA -> LLM -> Proiezione Olografica ===\n");
+        System.out.println("=== Flusso: Risoluzione -> Reranking -> Scoperta VSA -> Encoder-Embedding -> Proiezione Olografica ===\n");
 
         ItemMemory itemMemory = new ItemMemory(new RandomGenerationStrategy());
         OntologyTranslator translator = new OntologyTranslator();
@@ -27,8 +27,8 @@ public class AppDis {
         System.out.println("[*] FASE 0: Risoluzione entità e profilazione ontologica...");
 
         // SORGENTE e OGGETTO NOTO
-        List<ResolvedEntity> apolloResults = resolver.resolve("Apollo 11", 1);
-        List<ResolvedEntity> armstrongResults = resolver.resolve("Neil Armstrong", 1);
+        List<ResolvedEntity> apolloResults = resolver.resolve("Neil Armstrong", 1);
+        List<ResolvedEntity> armstrongResults = resolver.resolve("Apollo 11", 1);
 
         // IL TARGET: Tiriamo giù i TOP 5 per il Nilo per evitare il Popularity Bias!
         List<ResolvedEntity> targetResults = resolver.resolve("Vostok 1", 5);
@@ -59,7 +59,7 @@ public class AppDis {
         String currentTargetLabel = targetEntity.entityLabel();
 
         // ------------------------------------------------------------------------------------------------
-        // ALLINEAMENTO ONTOLOGICO AUTOMATICO (Graph + LLM)
+        // ALLINEAMENTO ONTOLOGICO AUTOMATICO (Graph + Encoder-Embedding)
         // ------------------------------------------------------------------------------------------------
         if (!apolloEntity.classLabel().equals(targetEntity.classLabel())) {
             System.out.println("\n   [ALLARME ASIMMETRIA] Le ontologie non coincidono ('" + apolloEntity.classLabel() + "' vs '" + targetEntity.classLabel() + "').");
@@ -101,17 +101,17 @@ public class AppDis {
             }
 
             if (!candidateOntologies.isEmpty()) {
-                System.out.println("   [LLM] Valuto " + candidateOntologies.size() + " candidati topologici rispetto a '" + apolloEntity.classLabel() + "'...");
+                System.out.println("   [Embedding] Valuto " + candidateOntologies.size() + " candidati topologici rispetto a '" + apolloEntity.classLabel() + "'...");
 
                 String bestEventUri = translator.findSemanticEquivalent(apolloEntity.classLabel(), candidateOntologies, 0.20);
 
                 if (bestEventUri != null) {
                     currentTargetUri = bestEventUri;
                     currentTargetLabel = candidateLabels.get(bestEventUri);
-                    System.out.println("   [COMPENSAZIONE RIUSCITA] L'LLM ha isolato l'evento topologicamente corretto!");
+                    System.out.println("   [COMPENSAZIONE RIUSCITA] L'Embedding ha isolato l'evento topologicamente corretto!");
                     System.out.printf("   NUOVO TARGET: %-25s%n", currentTargetLabel);
                 } else {
-                    System.out.println("   [FALLIMENTO] L'LLM non ha trovato nessun evento candidato affine a " + apolloEntity.classLabel());
+                    System.out.println("   [FALLIMENTO] L'Embedding non ha trovato nessun evento candidato affine a " + apolloEntity.classLabel());
                     return;
                 }
             } else {
@@ -172,11 +172,11 @@ public class AppDis {
         System.out.printf("   -> DEDUZIONE COMPLETATA: L'oggetto è legato tramite '%s' (Sim: %.2f)\n", sourceRoleLabel, bestHypothesisScore);
 
         System.out.println("\n=======================================================");
-        System.out.println("   STEP 2: IL PONTE ANALOGICO (LLM)                    ");
+        System.out.println("   STEP 2: IL PONTE ANALOGICO (Embedding)                    ");
         System.out.println("=======================================================");
 
         Map<String, String> targetProperties = extractPropertyLabels(targetResource, localModel);
-        System.out.println("   -> Chiedo all'LLM di tradurre '" + sourceRoleLabel + "' nel dominio di " + currentTargetLabel + "...");
+        System.out.println("   -> Chiedo all'Embedding di tradurre '" + sourceRoleLabel + "' nel dominio di " + currentTargetLabel + "...");
 
         String targetRoleUri = translator.findSemanticEquivalent(sourceRoleLabel, targetProperties, 0.40);
 
