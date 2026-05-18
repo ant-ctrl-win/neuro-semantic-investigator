@@ -26,7 +26,7 @@ public class AppDis {
 
         System.out.println("[*] FASE 0: Risoluzione entità e profilazione ontologica...");
 
-        // SORGENTE e OGGETTO NOTO
+        // SORGENTE (entità da esplorare) e OGGETTO NOTO (da trovare dentro la sorgente)
         List<ResolvedEntity> apolloResults = resolver.resolve("Amleto", 1);
         List<ResolvedEntity> armstrongResults = resolver.resolve("William Shakespeare", 1);
 
@@ -193,7 +193,7 @@ public class AppDis {
         String targetRoleLabel = fetchLabelFromWikidata(targetRoleUri);
 
         System.out.println("\n=======================================================");
-        System.out.println("   STEP 3 & 4: PROIEZIONE E ESTRAZIONE TARGET (VSA)    ");
+        System.out.println("    STEP 3 & 4: PROIEZIONE E ESTRAZIONE TARGET (VSA)    ");
         System.out.println("=======================================================");
 
         HDVector targetRoot = itemMemory.getTreeVector(currentTargetUri);
@@ -202,16 +202,30 @@ public class AppDis {
 
         System.out.println("   -> Uso la chiave tradotta ('" + targetRoleLabel + "') per aprire il vettore bersaglio...");
 
-        // LA MAGIA DELL'HOLOGRAPHIC BYPASS:
-        // Estraiamo il ramo rumoroso SENZA FARE IL CLEANUP INTERMEDIO per non perdere il segnale debole!
+        // ==========================================
+        // FASE 1: Estrazione e Purificazione del Ramo
+        // ==========================================
         HDVector noisyTargetBranch = targetRoot.permute(-100).bind(targetRole);
 
-        System.out.println("   -> [HOLOGRAPHIC BYPASS] Salto la pulizia del ramo e disimballo direttamente l'oggetto...");
+        System.out.println("   -> [SIMPKIN CLEAN-UP] Recupero del ramo intermedio (Chunk)...");
+        HDVector pureTargetBranch = itemMemory.cleanUpChunk(noisyTargetBranch);
 
-        // Svincoliamo Target Role e Target Subject direttamente dal rumore
-        HDVector noisyTargetObject = noisyTargetBranch.bind(targetSubject).bind(targetRole.permute(1)).permute(-2);
+        if (pureTargetBranch == null) {
+            System.out.println("\n[!] FALLIMENTO: Il ramo semantico si è perso nel rumore (Z-Score sotto soglia).");
+            System.out.println("    [Logica Applicata]: " + sourceRoleLabel + " ===> " + targetRoleLabel);
+            System.out.println("    [Confidenza VSA Ramo]: " + String.format("%.2f", itemMemory.getLastBestSigma()) + " σ");
+            return; // Interrompe pulitamente
+        }
 
-        // Facciamo il Clean-Up solo alla fine, cercando nel vocabolario l'entità che risuona di più
+        System.out.println("   -> Ramo recuperato con successo! Z-Score Ramo: " + String.format("%.2f", itemMemory.getLastBestSigma()) + " σ");
+
+        // ==========================================
+        // FASE 2: Estrazione dell'Oggetto dal Ramo Puro
+        // ==========================================
+        System.out.println("   -> Svincolo l'oggetto dal ramo purificato...");
+        HDVector noisyTargetObject = pureTargetBranch.bind(targetSubject).bind(targetRole.permute(1)).permute(-2);
+
+        // Clean-up Finale sulla memoria atomica (Oggetti)
         HDVector finalAnalogue = itemMemory.cleanUpRelative(noisyTargetObject);
 
         if (finalAnalogue != null) {
@@ -222,9 +236,10 @@ public class AppDis {
             String humanReadableResult = fetchLabelFromWikidata(itemMemory.getLastBestKey());
             System.out.printf("    %-15s sta a  %-15s%n", humanReadableResult, currentTargetLabel);
             System.out.println("\n    [Logica Applicata]: " + sourceRoleLabel + " ===> " + targetRoleLabel);
-            System.out.println("    [Confidenza VSA]: " + String.format("%.2f", itemMemory.getLastBestSigma()) + " σ");
+            System.out.println("    [Confidenza VSA Oggetto]: " + String.format("%.2f", itemMemory.getLastBestSigma()) + " σ");
         } else {
-            System.out.println("\n[?] Il segnale è stato completamente inghiottito dal rumore del grafo (Z-Score troppo basso).");
+            System.out.println("\n[?] Fallimento nel recupero dell'oggetto finale dal Chunk.");
+            System.out.println("    [Confidenza VSA Oggetto]: " + String.format("%.2f", itemMemory.getLastBestSigma()) + " σ");
         }
     }
 

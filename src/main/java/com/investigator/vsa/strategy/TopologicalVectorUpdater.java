@@ -53,7 +53,7 @@ public class TopologicalVectorUpdater {
         macroBranches.add(pureIdentity);
 
         if (macroBranches.size() % 2 == 0) {
-            macroBranches.add(HDVectorMapB.generateRandom());
+            macroBranches.add(memory.getOrGenerate("vsa:internal:parity_fix"));
         }
 
         HDVector rootVector = HDVectorMapB.bundleSimultaneous(macroBranches);

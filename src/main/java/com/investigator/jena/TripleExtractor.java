@@ -69,17 +69,24 @@ public class TripleExtractor {
     public Model extractBidirectional(String endpointUrl, String entityUri) {
         Model model = ModelFactory.createDefaultModel();
 
+        // Sostituisci la vecchia query complessa con questa:
         String sparqlQuery =
                 "CONSTRUCT { " +
                         "  <" + entityUri + "> ?pOut ?o . " +
-                        "  ?s ?pIn <" + entityUri + "> . " +
                         "} WHERE { " +
-                        "  { " +
-                        "    SELECT ?pOut ?o WHERE { <" + entityUri + "> ?pOut ?o . } " +
-                        "  } UNION { " +
-                        "    SELECT ?s ?pIn WHERE { ?s ?pIn <" + entityUri + "> . } LIMIT 500 " +
-                        "  } " +
+                        "  <" + entityUri + "> ?pOut ?o . " +
                         "}";
+//        String sparqlQuery =
+//                "CONSTRUCT { " +
+//                        "  <" + entityUri + "> ?pOut ?o . " +
+//                        "  ?s ?pIn <" + entityUri + "> . " +
+//                        "} WHERE { " +
+//                        "  { " +
+//                        "    SELECT ?pOut ?o WHERE { <" + entityUri + "> ?pOut ?o . } " +
+//                        "  } UNION { " +
+//                        "    SELECT ?s ?pIn WHERE { ?s ?pIn <" + entityUri + "> . } LIMIT 500 " +
+//                        "  } " +
+//                        "}";
 
         try {
             Query query = QueryFactory.create(sparqlQuery);

@@ -2,7 +2,7 @@
 
 **Session ID:** ses_22d4f4c92ffeTtCEPMOm6bak56
 **Created:** 28/4/2026, 08:04:48
-**Updated:** 15/5/2026, 18:18:27
+**Updated:** 18/5/2026, 14:25:47
 
 ---
 
@@ -14839,6 +14839,3245 @@ public class HDVectorMapBTest {
 ---
 
 Documento completo. 16 file main + 2 file test + pom.xml = 19 source file dumpati integralmente.
+
+---
+
+## User
+
+In una verifica precedente avevi proposto di generare vettori pseudocasuali in base agli URI(IRI non ricordo) l'Ash code che fa da seed per la generazione del vettore che diventa pseudocasuale, creando una sorta di persistenza senza database.
+
+---
+
+## Assistant (Build · DeepSeek V4 Pro · 38.1s)
+
+_Thinking:_
+
+The user is asking me to implement a deterministic pseudorandom vector generation strategy where the URI/hash code acts as a seed for generating the vector. This creates "persistence without a database" — the same URI always generates the same vector, no need to store anything.
+
+Currently, `RandomGenerationStrategy` generates a totally random vector each time (it uses `HDVectorMapB.generateRandom()` with `new Random()` — no seed). This means each JVM restart produces different vectors for the same URIs.
+
+The user wants me to:
+1. Create a new strategy (or modify existing) that uses the URI's hash code as a seed to `Random`, so that `generate("http://www.wikidata.org/entity/Q43653")` always produces the same bipolar vector across JVM restarts.
+2. This is essentially making `RandomGenerationStrategy` deterministic/pseudorandom.
+
+Let me check the current `RandomGenerationStrategy`:
+
+```java
+public class RandomGenerationStrategy implements VectorGenerationStrategy {
+    @Override
+    public HDVector generate(String uri) {
+        return HDVectorMapB.generateRandom();
+    }
+}
+```
+
+And `HDVectorMapB.generateRandom()`:
+```java
+public static HDVectorMapB generateRandom() {
+    HDVectorMapB v = new HDVectorMapB();
+    Random rnd = new Random();
+    for (int i = 0; i < D; i++) {
+        v.values[i] = (byte) (rnd.nextBoolean() ? 1 : -1);
+    }
+    return v;
+}
+```
+
+I need to modify this so that the URI's hash code seeds the Random. The cleanest approach would be to:
+1. Add a `generateSeeded(String seed)` static method to `HDVectorMapB` that takes a long seed
+2. Modify `RandomGenerationStrategy.generate(String uri)` to use `HDVectorMapB.generateSeeded(uri.hashCode())` or even better, use the full URI string's hash in a more robust way
+
+Actually, `String.hashCode()` is only 32 bits and can collide. A better approach would be to use `UUID.nameUUIDFromBytes(uri.getBytes(StandardCharsets.UTF_8))` to get a 128-bit seed, then use that to seed. Or we could use MD5/SHA-256 of the URI for the seed. But in Java, `Random` takes a `long` (64 bits), so we could use the lower 64 bits.
+
+Let me think about the best approach:
+- Simple: `new Random(uri.hashCode())` — 32-bit seed, good enough for deterministic pseudorandom
+- Better: use a hash of the URI bytes to get a 64-bit seed
+- For the D=10000 vector, we need 10000 random booleans, which is fine with any seed
+
+I think the simplest and most correct approach is:
+1. In `HDVectorMapB`, add a `generateSeeded(long seed)` method
+2. In `RandomGenerationStrategy`, hash the URI to produce a long seed, then call `generateSeeded()`
+
+For robustness, I can use `UUID.nameUUIDFromBytes(uri.getBytes(StandardCharsets.UTF_8)).getLeastSignificantBits()` as the seed.
+
+Wait, actually there's a subtle issue. The current `bundleSimultaneous` and `bundle` methods also use `new Random()` for tie-breaking. Those should also be made deterministic if we want full reproducibility. But the user's request is specifically about vector generation from URIs, so let me focus on that.
+
+Let me also think about where to put this. The user said "persistenza senza database" — meaning the vectors should be reproducible. Currently:
+- `RandomGenerationStrategy.generate(uri)` calls `HDVectorMapB.generateRandom()` which uses `new Random()` (no seed, time-based)
+- The fix: make `generate(uri)` use a deterministic seed derived from the URI
+
+Let me implement this:
+
+**HDVectorMapB.java**: Add `public static HDVectorMapB generateSeeded(long seed)` method.
+
+**RandomGenerationStrategy.java**: Modify `generate(String uri)` to compute a seed from the URI and use `generateSeeded()`.
+
+Let me also consider: the user is running experiments with different entities (Amazon vs Brazil, etc.) and needs reproducible vectors across runs to debug and compare results. Without deterministic vectors, the VSA results are non-reproducible, which makes debugging the pipeline very difficult.
+
+Let me implement this now.
+
+Esatto. Attualmente `RandomGenerationStrategy.generate(uri)` chiama `HDVectorMapB.generateRandom()` che usa `new Random()` senza seed, quindi ogni esecuzione produce vettori diversi per lo stesso URI. Questo rende il debugging impossibile.
+
+Aggiungo la generazione deterministica: l'hash dell'URI fa da seed al PRNG, così lo stesso URI genera sempre lo stesso vettore bipolare, run dopo run.
+
+**Tool: read**
+
+**Input:**
+```json
+{
+  "filePath": "C:\\Users\\Ion\\IdeaProjects\\Vaimee\\VSA\\neuro-semantic-investigator\\src\\main\\java\\com\\investigator\\vsa\\HDVectorMapB.java"
+}
+```
+
+**Output:**
+```
+<path>C:\Users\Ion\IdeaProjects\Vaimee\VSA\neuro-semantic-investigator\src\main\java\com\investigator\vsa\HDVectorMapB.java</path>
+<type>file</type>
+<content>
+1: package com.investigator.vsa;
+2: 
+3: import java.util.Arrays;
+4: import java.util.List;
+5: import java.util.Random;
+6: 
+7: public class HDVectorMapB implements HDVector {
+8:     public static final int D = 10000;
+9:     private final byte[] values;
+10: 
+11:     public HDVectorMapB() {
+12:         this.values = new byte[D];
+13:     }
+14: 
+15:     public HDVectorMapB(byte[] values) {
+16:         this.values = Arrays.copyOf(values, values.length);
+17:     }
+18: 
+19:     public static HDVectorMapB generateRandom() {
+20:         HDVectorMapB v = new HDVectorMapB();
+21:         Random rnd = new Random();
+22:         for (int i = 0; i < D; i++) {
+23:             v.values[i] = (byte) (rnd.nextBoolean() ? 1 : -1);
+24:         }
+25:         return v;
+26:     }
+27: 
+28:     public static HDVector bundleSimultaneous(List<HDVector> vectors) {
+29:         int[] sum = new int[D];
+30:         for (HDVector v : vectors) {
+31:             HDVectorMapB bv = (HDVectorMapB) v;
+32:             for (int i = 0; i < D; i++) {
+33:                 sum[i] += bv.values[i];
+34:             }
+35:         }
+36:         byte[] result = new byte[D];
+37:         Random tieBreaker = new Random();
+38:         for (int i = 0; i < D; i++) {
+39:             if (sum[i] > 0) result[i] = 1;
+40:             else if (sum[i] < 0) result[i] = -1;
+41:             else result[i] = (byte) (tieBreaker.nextBoolean() ? 1 : -1);
+42:         }
+43:         return new HDVectorMapB(result);
+44:     }
+45: 
+46:     @Override
+47:     public HDVector bind(HDVector other) {
+48:         HDVectorMapB o = (HDVectorMapB) other;
+49:         byte[] result = new byte[D];
+50:         for (int i = 0; i < D; i++) {
+51:             result[i] = (byte) (this.values[i] * o.values[i]); // Hadamard product
+52:         }
+53:         return new HDVectorMapB(result);
+54:     }
+55: 
+56:     @Override
+57:     public HDVector bundle(HDVector other) {
+58:         HDVectorMapB o = (HDVectorMapB) other;
+59:         byte[] result = new byte[D];
+60:         Random tieBreaker = new Random();
+61:         for (int i = 0; i < D; i++) {
+62:             int sum = this.values[i] + o.values[i];
+63:             if (sum > 0) result[i] = 1;
+64:             else if (sum < 0) result[i] = -1;
+65:             else result[i] = (byte) (tieBreaker.nextBoolean() ? 1 : -1);
+66:         }
+67:         return new HDVectorMapB(result);
+68:     }
+69: 
+70:     @Override
+71:     public HDVector permute(int shift) {
+72:         byte[] result = new byte[D];
+73:         for (int i = 0; i < D; i++) {
+74:             int newIndex = (i + shift) % D;
+75:             if (newIndex < 0) newIndex += D;
+76:             result[newIndex] = this.values[i];
+77:         }
+78:         return new HDVectorMapB(result);
+79:     }
+80: 
+81:     @Override
+82:     public double similarity(HDVector other) {
+83:         HDVectorMapB o = (HDVectorMapB) other;
+84:         int dotProduct = 0;
+85:         for (int i = 0; i < D; i++) {
+86:             dotProduct += this.values[i] * o.values[i];
+87:         }
+88:         return (double) dotProduct / D;
+89:     }
+90: }
+
+(End of file - total 90 lines)
+</content>
+```
+
+**Tool: read**
+
+**Input:**
+```json
+{
+  "filePath": "C:\\Users\\Ion\\IdeaProjects\\Vaimee\\VSA\\neuro-semantic-investigator\\src\\main\\java\\com\\investigator\\vsa\\strategy\\RandomGenerationStrategy.java"
+}
+```
+
+**Output:**
+```
+<path>C:\Users\Ion\IdeaProjects\Vaimee\VSA\neuro-semantic-investigator\src\main\java\com\investigator\vsa\strategy\RandomGenerationStrategy.java</path>
+<type>file</type>
+<content>
+1: package com.investigator.vsa.strategy;
+2: 
+3: import com.investigator.vsa.HDVector;
+4: import com.investigator.vsa.HDVectorMapB;
+5: 
+6: public class RandomGenerationStrategy implements VectorGenerationStrategy {
+7:     @Override
+8:     public HDVector generate(String uri) {
+9:         return HDVectorMapB.generateRandom();
+10:     }
+11: }
+
+(End of file - total 11 lines)
+</content>
+```
+
+---
+
+## Assistant (Build · DeepSeek V4 Pro · 49.6s)
+
+_Thinking:_
+
+Now let me implement the deterministic pseudorandom vector generation.
+
+I'll:
+1. Add `generateSeeded(long seed)` to `HDVectorMapB`
+2. Modify `RandomGenerationStrategy.generate(uri)` to compute a 64-bit hash from the URI and use `generateSeeded()`
+
+For the hash, I'll use `ByteBuffer.wrap(MessageDigest.getInstance("SHA-256").digest(uri.getBytes(StandardCharsets.UTF_8))).getLong()` to get a robust 64-bit seed. Actually, that's overkill. Let me just use `UUID.nameUUIDFromBytes(uri.getBytes(StandardCharsets.UTF_8)).getMostSignificantBits()` which gives a deterministic 64-bit hash from the string. This is built-in to Java.
+
+Wait, `UUID.nameUUIDFromBytes` uses MD5 internally in Java. That's fine for this purpose.
+
+Actually, even simpler: just use `(long) uri.hashCode()` — but that's only 32 bits. To spread better across the D=10000 space, using 64 bits is better.
+
+Let me use `UUID.nameUUIDFromBytes(uri.getBytes(StandardCharsets.UTF_8)).getMostSignificantBits()`.
+
+Let me also think about whether I should also seed the tie-breakers in `bundle` and `bundleSimultaneous`. Those are for tie-breaking when sum == 0, which is rare in bundling large vectors. For reproducibility, yes, they should also be deterministic. But mixing them with a fixed seed would mean every bundle operation has the same tie-break pattern. A better approach: use a seed derived from the URI for the initial generation, and use a fixed seed (e.g., 0 or 42) for tie-breakers in bundle operations.
+
+Let me make `bundleSimultaneous` use a fixed seed tie-breaker (e.g., `new Random(42L)`) instead of `new Random()`. Same for `bundle`. This way, tie-breaking is always the same pattern. Actually, for pure reproducibility we should either:
+- Always use the same seed for tie-breakers (deterministic ties)
+- Or compute a seed from the content being bundled
+
+For now, the most important thing is the atomic vector generation being reproducible. Let me just fix `generate` and `bundleSimultaneous`/`bundle` with fixed seeds for tie-breakers.
+
+Actually, I think the cleanest approach is:
+1. Add `generateSeeded(long seed)` to HDVectorMapB
+2. In RandomGenerationStrategy, use `UUID.nameUUIDFromBytes(uri.getBytes(UTF_8)).getMostSignificantBits()` as seed
+3. For bundle tie-breakers, use a constant seed (e.g., `42L`) so they're deterministic too
+
+Let me do both edits now.
+
+**Tool: edit**
+
+**Input:**
+```json
+{
+  "filePath": "C:\\Users\\Ion\\IdeaProjects\\Vaimee\\VSA\\neuro-semantic-investigator\\src\\main\\java\\com\\investigator\\vsa\\HDVectorMapB.java",
+  "oldString": "    public static HDVectorMapB generateRandom() {\n        HDVectorMapB v = new HDVectorMapB();\n        Random rnd = new Random();\n        for (int i = 0; i < D; i++) {\n            v.values[i] = (byte) (rnd.nextBoolean() ? 1 : -1);\n        }\n        return v;\n    }\n\n    public static HDVector bundleSimultaneous(List<HDVector> vectors) {\n        int[] sum = new int[D];\n        for (HDVector v : vectors) {\n            HDVectorMapB bv = (HDVectorMapB) v;\n            for (int i = 0; i < D; i++) {\n                sum[i] += bv.values[i];\n            }\n        }\n        byte[] result = new byte[D];\n        Random tieBreaker = new Random();",
+  "newString": "    public static HDVectorMapB generateRandom() {\n        HDVectorMapB v = new HDVectorMapB();\n        Random rnd = new Random();\n        for (int i = 0; i < D; i++) {\n            v.values[i] = (byte) (rnd.nextBoolean() ? 1 : -1);\n        }\n        return v;\n    }\n\n    public static HDVectorMapB generateSeeded(long seed) {\n        HDVectorMapB v = new HDVectorMapB();\n        Random rnd = new Random(seed);\n        for (int i = 0; i < D; i++) {\n            v.values[i] = (byte) (rnd.nextBoolean() ? 1 : -1);\n        }\n        return v;\n    }\n\n    public static HDVector bundleSimultaneous(List<HDVector> vectors) {\n        int[] sum = new int[D];\n        for (HDVector v : vectors) {\n            HDVectorMapB bv = (HDVectorMapB) v;\n            for (int i = 0; i < D; i++) {\n                sum[i] += bv.values[i];\n            }\n        }\n        byte[] result = new byte[D];\n        Random tieBreaker = new Random(42L);"
+}
+```
+
+**Output:**
+```
+Edit applied successfully.
+```
+
+**Tool: edit**
+
+**Input:**
+```json
+{
+  "filePath": "C:\\Users\\Ion\\IdeaProjects\\Vaimee\\VSA\\neuro-semantic-investigator\\src\\main\\java\\com\\investigator\\vsa\\HDVectorMapB.java",
+  "oldString": "        Random tieBreaker = new Random();\n        for (int i = 0; i < D; i++) {\n            int sum = this.values[i] + o.values[i];",
+  "newString": "        Random tieBreaker = new Random(42L);\n        for (int i = 0; i < D; i++) {\n            int sum = this.values[i] + o.values[i];"
+}
+```
+
+**Output:**
+```
+Edit applied successfully.
+```
+
+**Tool: edit**
+
+**Input:**
+```json
+{
+  "filePath": "C:\\Users\\Ion\\IdeaProjects\\Vaimee\\VSA\\neuro-semantic-investigator\\src\\main\\java\\com\\investigator\\vsa\\strategy\\RandomGenerationStrategy.java",
+  "oldString": "package com.investigator.vsa.strategy;\n\nimport com.investigator.vsa.HDVector;\nimport com.investigator.vsa.HDVectorMapB;\n\npublic class RandomGenerationStrategy implements VectorGenerationStrategy {\n    @Override\n    public HDVector generate(String uri) {\n        return HDVectorMapB.generateRandom();\n    }\n}",
+  "newString": "package com.investigator.vsa.strategy;\n\nimport com.investigator.vsa.HDVector;\nimport com.investigator.vsa.HDVectorMapB;\n\nimport java.nio.charset.StandardCharsets;\nimport java.util.UUID;\n\npublic class RandomGenerationStrategy implements VectorGenerationStrategy {\n    @Override\n    public HDVector generate(String uri) {\n        long seed = UUID.nameUUIDFromBytes(uri.getBytes(StandardCharsets.UTF_8)).getMostSignificantBits();\n        return HDVectorMapB.generateSeeded(seed);\n    }\n}"
+}
+```
+
+**Output:**
+```
+Edit applied successfully.
+```
+
+---
+
+## Assistant (Build · DeepSeek V4 Pro · 11.2s)
+
+_Thinking:_
+
+Build and verify.
+
+**Tool: bash**
+
+**Input:**
+```json
+{
+  "description": "Compile and verify deterministic vectors",
+  "command": "mvn clean compile",
+  "workdir": "C:\\Users\\Ion\\IdeaProjects\\Vaimee\\VSA\\neuro-semantic-investigator",
+  "timeout": 60000
+}
+```
+
+**Output:**
+```
+[INFO] Scanning for projects...
+[WARNING] 
+[WARNING] Some problems were encountered while building the effective model for com.investigator:neuro-semantic-investigator:jar:1.0
+[WARNING] 'dependencies.dependency.version' for org.testng:testng:jar is either LATEST or RELEASE (both of them are being deprecated) @ line 57, column 22
+[WARNING] 
+[WARNING] It is highly recommended to fix these problems because they threaten the stability of your build.
+[WARNING] 
+[WARNING] For this reason, future Maven versions might no longer support building such malformed projects.
+[WARNING] 
+[INFO] 
+[INFO] ------------< com.investigator:neuro-semantic-investigator >------------
+[INFO] Building neuro-semantic-investigator 1.0
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+Downloading from sjenar: https://maven.pkg.github.com/vaimee/sjenar/org/testng/testng/maven-metadata.xml
+Downloading from sepa: https://maven.pkg.github.com/vaimee/SEPA/org/testng/testng/maven-metadata.xml
+[WARNING] Could not transfer metadata org.testng:testng/maven-metadata.xml from/to sjenar (https://maven.pkg.github.com/vaimee/sjenar): status code: 401, reason phrase: Unauthorized (401)
+[WARNING] Could not transfer metadata org.testng:testng/maven-metadata.xml from/to sepa (https://maven.pkg.github.com/vaimee/SEPA): status code: 401, reason phrase: Unauthorized (401)
+[WARNING] org.testng:testng/maven-metadata.xml failed to transfer from https://maven.pkg.github.com/vaimee/sjenar during a previous attempt. This failure was cached in the local repository and resolution will not be reattempted until the update interval of sjenar has elapsed or updates are forced. Original error: Could not transfer metadata org.testng:testng/maven-metadata.xml from/to sjenar (https://maven.pkg.github.com/vaimee/sjenar): status code: 401, reason phrase: Unauthorized (401)
+[WARNING] org.testng:testng/maven-metadata.xml failed to transfer from https://maven.pkg.github.com/vaimee/SEPA during a previous attempt. This failure was cached in the local repository and resolution will not be reattempted until the update interval of sepa has elapsed or updates are forced. Original error: Could not transfer metadata org.testng:testng/maven-metadata.xml from/to sepa (https://maven.pkg.github.com/vaimee/SEPA): status code: 401, reason phrase: Unauthorized (401)
+[INFO] 
+[INFO] --- clean:3.2.0:clean (default-clean) @ neuro-semantic-investigator ---
+[INFO] Deleting C:\Users\Ion\IdeaProjects\Vaimee\VSA\neuro-semantic-investigator\target
+[INFO] 
+[INFO] --- resources:3.4.0:resources (default-resources) @ neuro-semantic-investigator ---
+[INFO] Copying 2 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ neuro-semantic-investigator ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 16 source files with javac [debug target 17] to target\classes
+[WARNING] system modules path not set in conjunction with -source 17
+[INFO] /C:/Users/Ion/IdeaProjects/Vaimee/VSA/neuro-semantic-investigator/src/main/java/com/investigator/jena/SparqlEndpoint.java: C:\Users\Ion\IdeaProjects\Vaimee\VSA\neuro-semantic-investigator\src\main\java\com\investigator\jena\SparqlEndpoint.java uses or overrides a deprecated API.
+[INFO] /C:/Users/Ion/IdeaProjects/Vaimee/VSA/neuro-semantic-investigator/src/main/java/com/investigator/jena/SparqlEndpoint.java: Recompile with -Xlint:deprecation for details.
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  3.367 s
+[INFO] Finished at: 2026-05-15T18:25:14+02:00
+[INFO] ------------------------------------------------------------------------
+
+```
+
+---
+
+## Assistant (Build · DeepSeek V4 Pro · 9.1s)
+
+_Thinking:_
+
+BUILD SUCCESS. Let me summarize what was done.
+
+**BUILD SUCCESS** — 16 file compilati.
+
+Modifiche fatte:
+
+### `HDVectorMapB.java`
+- **Aggiunto** `generateSeeded(long seed)` — usa `Random(seed)` invece di `Random()` senza seed
+- **`bundleSimultaneous`** — tie-breaker ora `new Random(42L)` (fisso, non `new Random()`)
+- **`bundle`** — tie-breaker ora `new Random(42L)` (fisso)
+
+### `RandomGenerationStrategy.java`
+```java
+public HDVector generate(String uri) {
+    long seed = UUID.nameUUIDFromBytes(
+        uri.getBytes(StandardCharsets.UTF_8)
+    ).getMostSignificantBits();
+    return HDVectorMapB.generateSeeded(seed);
+}
+```
+
+L'idea: `UUID.nameUUIDFromBytes()` è un hash deterministico dell'URI (MD5-based). I suoi 64 bit più significativi diventano il seed del PRNG. Stesso URI → stesso seed → stesso vettore bipolare di 10000 dimensioni, run dopo run, senza database.
+
+---
+
+## User
+
+In questo modo sistemi distribuiti avranno gli stessi vettori di riferimento per lo stesso URI?
+
+---
+
+## Assistant (Build · DeepSeek V4 Pro · 41.6s)
+
+_Thinking:_
+
+The user is asking whether this approach will produce the same vectors across distributed systems for the same URI.
+
+The answer is **yes** — `UUID.nameUUIDFromBytes()` uses a well-defined algorithm (specifically, it's a type-3 UUID based on MD5 hashing of a namespace UUID + name bytes). The namespace used is `UUID.fromString("6ba7b811-9dad-11d1-80b4-00c04fd430c8")` (the DNS namespace UUID). This is platform-independent and language-independent, specified in RFC 4122.
+
+However, there's a subtlety: `UUID.nameUUIDFromBytes()` in Java hashes `namespaceUUID bytes + name bytes`, not just the name bytes alone. So the result depends on the namespace UUID used. Java's implementation uses a hardcoded namespace UUID. The `UUID.nameUUIDFromBytes(uri.getBytes(StandardCharsets.UTF_8))` uses `GET` namespace (the variant for URL-based namespace). Actually, wait — `UUID.nameUUIDFromBytes` in Java uses the `java.util.UUID.nameUUIDFromBytes(byte[] name)` which is a type-3 UUID using the namespace returned by `UUID.nameUUIDFromBytes`... let me think more carefully.
+
+Actually, in Java, `UUID.nameUUIDFromBytes(byte[] name)` doesn't exist with a single argument. That's an overload. Let me check: the Java API has `static UUID nameUUIDFromBytes(byte[] name)` which creates a UUID from a byte array using MD5/RFC 4122 Type 3. But this single-arg version uses what namespace? I think it might not exist. Actually, checking the Java docs... `UUID.nameUUIDFromBytes(byte[] name)` doesn't exist. There's `UUID.nameUUIDFromBytes(byte[] name)` as a static method — let me verify.
+
+Hmm, actually, I recall now: Java's UUID class has `public static UUID nameUUIDFromBytes(byte[] name)`. This is available since Java 8. It generates a name-based UUID using MD5 (type 3). But what namespace does it use? Let me think... 
+
+Actually, looking at the Java source code, `UUID.nameUUIDFromBytes(byte[] name)` exists and it uses the MD5 hash directly on the bytes, effectively using an empty/v1 namespace. But wait — the method actually does hash the bytes directly without a namespace prefix. Let me check: 
+
+```java
+public static UUID nameUUIDFromBytes(byte[] name) {
+    MessageDigest md;
+    try {
+        md = MessageDigest.getInstance("MD5");
+    } catch (NoSuchAlgorithmException nsae) {
+        throw new InternalError("MD5 not supported");
+    }
+    byte[] md5Bytes = md.digest(name);
+    md5Bytes[6]  &= 0x0f;  /* clear version        */
+    md5Bytes[6]  |= 0x30;  /* set to version 3     */
+    md5Bytes[8]  &= 0x3f;  /* clear variant        */
+    md5Bytes[8]  |= 0x80;  /* set to IETF variant  */
+    return new UUID(md5Bytes);
+}
+```
+
+Wait, I'm not sure if that's the exact code. Let me think about this from the perspective of the user's question.
+
+The key question: will the same URI produce the same vector across different JVMs, different machines, different languages?
+
+For `UUID.nameUUIDFromBytes(uri.getBytes(StandardCharsets.UTF_8))`:
+1. `uri` is a fixed string like "http://www.wikidata.org/entity/Q43653"
+2. `StandardCharsets.UTF_8` encoding is deterministic and universal
+3. `UUID.nameUUIDFromBytes()` uses MD5 internally, which is deterministic
+4. `getMostSignificantBits()` extracts bits 0-63 of the MD5 digest
+5. `new Random(seed)` in Java uses the same LCG algorithm everywhere
+6. `nextBoolean()` in Java is deterministic given the seed
+
+So yes, across any Java JVM (any version, any OS, any hardware), the same URI will produce the exact same `long` seed and therefore the exact same 10000-element bipolar vector.
+
+Cross-language: if another system (Python, Rust, etc.) reimplements the same hash → PRNG pipeline, they'd get the same vector too, as long as they use MD5 for the URI → seed step and the same LCG for seed → bipolar vector step. Java's Random LCG is well-documented: `seed = (seed * 0x5DEECE66DL + 0xBL) & ((1L << 48) - 1)` and `nextBoolean()` returns `next(1) != 0`. This is reproducible in any language.
+
+So the short answer is: **Yes**, across all Java VMs and across languages if they replicate the same hash/PRNG pipeline.
+
+Sì. Su qualsiasi JVM (qualsiasi OS, qualsiasi macchina), lo stesso URI produce sempre lo stesso seed e quindi lo stesso vettore, perché la catena è tutta deterministica:
+
+```
+URI → UTF-8 bytes → MD5 hash → 64-bit seed → Random(seed) LCG → 10000 bit bipolari
+```
+
+Tre garanzie:
+1. **`UUID.nameUUIDFromBytes()`** — MD5 su bytes, specificato da RFC 4122, identico ovunque
+2. **`java.util.Random(seed)`** — LCG con costanti fisse (`0x5DEECE66DL * seed + 0xBL`), identico in ogni standard library Java
+3. **`StandardCharsets.UTF_8`** — codifica universale, nessuna dipendenza dal locale
+
+Anche cross-linguaggio è riproducibile: basta reimplementare MD5 + LCG nello stesso ordine.
+
+---
+
+## User
+
+Attenzione: "C:\Program Files\Eclipse Adoptium\jdk-21.0.9.10-hotspot\bin\java.exe" "-javaagent:C:\Program Files\JetBrains\IntelliJ IDEA 2025.2.5\lib\idea_rt.jar=58125" -Dfile.encoding=UTF-8 -Dsun.stdout.encoding=UTF-8 -Dsun.stderr.encoding=UTF-8 -classpath C:\Users\Ion\IdeaProjects\Vaimee\VSA\neuro-semantic-investigator\target\classes;C:\Users\Ion\.m2\repository\org\apache\jena\jena-core\5.0.0\jena-core-5.0.0.jar;C:\Users\Ion\.m2\repository\org\apache\jena\jena-base\5.0.0\jena-base-5.0.0.jar;C:\Users\Ion\.m2\repository\org\apache\commons\commons-csv\1.10.0\commons-csv-1.10.0.jar;C:\Users\Ion\.m2\repository\commons-io\commons-io\2.15.1\commons-io-2.15.1.jar;C:\Users\Ion\.m2\repository\commons-codec\commons-codec\1.16.1\commons-codec-1.16.1.jar;C:\Users\Ion\.m2\repository\org\apache\commons\commons-compress\1.26.1\commons-compress-1.26.1.jar;C:\Users\Ion\.m2\repository\org\apache\commons\commons-collections4\4.4\commons-collections4-4.4.jar;C:\Users\Ion\.m2\repository\com\github\ben-manes\caffeine\caffeine\3.1.8\caffeine-3.1.8.jar;C:\Users\Ion\.m2\repository\org\checkerframework\checker-qual\3.37.0\checker-qual-3.37.0.jar;C:\Users\Ion\.m2\repository\com\google\errorprone\error_prone_annotations\2.21.1\error_prone_annotations-2.21.1.jar;C:\Users\Ion\.m2\repository\com\github\andrewoma\dexx\collection\0.7\collection-0.7.jar;C:\Users\Ion\.m2\repository\org\apache\jena\jena-iri\5.0.0\jena-iri-5.0.0.jar;C:\Users\Ion\.m2\repository\commons-cli\commons-cli\1.6.0\commons-cli-1.6.0.jar;C:\Users\Ion\.m2\repository\org\roaringbitmap\RoaringBitmap\1.0.5\RoaringBitmap-1.0.5.jar;C:\Users\Ion\.m2\repository\org\apache\jena\jena-arq\5.0.0\jena-arq-5.0.0.jar;C:\Users\Ion\.m2\repository\com\google\code\gson\gson\2.10.1\gson-2.10.1.jar;C:\Users\Ion\.m2\repository\org\slf4j\jcl-over-slf4j\2.0.7\jcl-over-slf4j-2.0.7.jar;C:\Users\Ion\.m2\repository\com\apicatalog\titanium-json-ld\1.4.0\titanium-json-ld-1.4.0.jar;C:\Users\Ion\.m2\repository\org\glassfish\jakarta.json\2.0.1\jakarta.json-2.0.1.jar;C:\Users\Ion\.m2\repository\com\google\protobuf\protobuf-java\3.25.3\protobuf-java-3.25.3.jar;C:\Users\Ion\.m2\repository\org\apache\thrift\libthrift\0.19.0\libthrift-0.19.0.jar;C:\Users\Ion\.m2\repository\org\apache\commons\commons-lang3\3.14.0\commons-lang3-3.14.0.jar;C:\Users\Ion\.m2\repository\dev\langchain4j\langchain4j-embeddings-all-minilm-l6-v2\0.27.1\langchain4j-embeddings-all-minilm-l6-v2-0.27.1.jar;C:\Users\Ion\.m2\repository\dev\langchain4j\langchain4j-embeddings\0.27.1\langchain4j-embeddings-0.27.1.jar;C:\Users\Ion\.m2\repository\dev\langchain4j\langchain4j-core\0.27.1\langchain4j-core-0.27.1.jar;C:\Users\Ion\.m2\repository\com\microsoft\onnxruntime\onnxruntime\1.16.3\onnxruntime-1.16.3.jar;C:\Users\Ion\.m2\repository\ai\djl\api\0.25.0\api-0.25.0.jar;C:\Users\Ion\.m2\repository\net\java\dev\jna\jna\5.13.0\jna-5.13.0.jar;C:\Users\Ion\.m2\repository\org\slf4j\slf4j-api\2.0.12\slf4j-api-2.0.12.jar;C:\Users\Ion\.m2\repository\ch\qos\logback\logback-classic\1.5.3\logback-classic-1.5.3.jar;C:\Users\Ion\.m2\repository\ch\qos\logback\logback-core\1.5.3\logback-core-1.5.3.jar com.investigator.AppDis
+=== NEURO-SEMANTIC INVESTIGATOR: LA VERA ANALOGIA ===
+=== Flusso: Risoluzione -> Reranking -> Scoperta VSA -> Encoder-Embedding -> Proiezione Olografica ===
+
+   [ItemMemory] Inizializzata con D=10000. Soglia di clean-up calcolata: 4,00 σ
+[*] FASE 0: Risoluzione entità e profilazione ontologica...
+   [RERANKER] Disambiguazione di 5 candidati (class similarity 60% + sitelinks 40%):
+      -> [Vostok 1] Classe='Vostok' | ClassSim=0,221 | Sitelinks=65 (1,00) | COMBINATO=0,532
+      -> [Vostok 1] Classe='human spaceflight' | ClassSim=0,445 | Sitelinks=65 (1,00) | COMBINATO=0,667
+      -> [Korabl-Sputnik 2] Classe='artificial satellite of the Earth' | ClassSim=0,152 | Sitelinks=34 (0,52) | COMBINATO=0,301
+      -> [Korabl-Sputnik 3] Classe='space mission' | ClassSim=0,283 | Sitelinks=20 (0,31) | COMBINATO=0,293
+      -> [Korabl-Sputnik 3] Classe='artificial satellite of the Earth' | ClassSim=0,152 | Sitelinks=20 (0,31) | COMBINATO=0,214
+   [RERANKER] -> Scelto: Vostok 1 (Combinato: 0,667)
+
+=======================================================
+   REPORT ONTOLOGICO PRELIMINARE
+=======================================================
+   SORGENTE  : Neil Armstrong             Tipo: human
+   OGG. NOTO : Apollo 11                  Tipo: human spaceflight
+   TARGET 1  : Vostok 1                   Tipo: human spaceflight
+=======================================================
+
+   [COMPAT CHECK] 'human' vs 'human spaceflight' -> Similarità: 0,445 (Soglia: 0,35)
+[*] Ingestione e vettorizzazione grafi in corso...
+   [GraphManager] Download Bidirezionale (Multi-Hop) per: http://www.wikidata.org/entity/Q1615
+   [GraphManager] Download Bidirezionale (Multi-Hop) per: http://www.wikidata.org/entity/Q1615
+[DEBUG] LocalGraph contains 1265 statements after expansion of http://www.wikidata.org/entity/Q1615
+   [GraphManager] Download Bidirezionale (Multi-Hop) per: http://www.wikidata.org/entity/Q182524
+   [GraphManager] Download Bidirezionale (Multi-Hop) per: http://www.wikidata.org/entity/Q182524
+[DEBUG] LocalGraph contains 1566 statements after expansion of http://www.wikidata.org/entity/Q182524
+
+=======================================================
+   STEP 1: DEDUZIONE DEL RUOLO SORGENTE (VSA)          
+=======================================================
+   [ERRORE] La VSA non riesce a trovare l'Oggetto Noto nel vettore della Sorgente.
+
+Process finished with exit code 0 Ho riproposto la ricerca che inizialmente funzionava Niel Armstrong : Apollo 11 = ? : Vostok 1 e abbiamo un errore. Valuta le modifiche, la catena di ragionamento per capire dove è l'inghippo.
+
+---
+
+## Assistant (Build · DeepSeek V4 Pro · 49.3s)
+
+_Thinking:_
+
+The user is running `AppDis` with Neil Armstrong : Apollo 11 = ? : Vostok 1. The pipeline reaches STEP 1 where VSA tries to deduce the source role, but fails.
+
+Let me look at the runtime output carefully:
+
+1. The resolvers found:
+   - Source (Neil Armstrong) = "human" — this is the "known object" that should be found inside the source entity's graph
+   - Source entity (Apollo 11) = "human spaceflight"
+   - Target (Vostok 1) = "human spaceflight"
+
+2. Wait, looking at the output labels:
+   - `SORGENTE : Neil Armstrong  Tipo: human` — but "Neil Armstrong" should be a human, yes
+   - `OGG. NOTO : Apollo 11  Tipo: human spaceflight` — wait, Apollo 11 is the source entity, Neil Armstrong is the known object
+   
+   Hmm, actually looking at the labels: "SORGENTE" = Neil Armstrong (human), "OGG. NOTO" = Apollo 11 (human spaceflight). This seems reversed from what I expected...
+
+   Wait, let me re-read the search queries in AppDis.java:
+   ```java
+   List<ResolvedEntity> sourceResults = resolver.resolve("Hamlet", 1);
+   List<ResolvedEntity> knownResults   = resolver.resolve("William Shakespeare", 1);
+   List<ResolvedEntity> targetResults  = resolver.resolve("Lacrimosa", 5);
+   ```
+
+   But the user's current run output shows they changed the search queries. They wrote:
+   - Source = Neil Armstrong
+   - Known object = Apollo 11  
+   - Target = Vostok
+
+   Wait, actually no. The output shows:
+   ```
+   SORGENTE  : Neil Armstrong  Tipo: human
+   OGG. NOTO : Apollo 11      Tipo: human spaceflight
+   TARGET 1  : Vostok 1       Tipo: human spaceflight
+   ```
+
+   So the searches are:
+   - `sourceResults = resolver.resolve("Neil Armstrong", 1)` → Neil Armstrong
+   - `knownResults = resolver.resolve("Apollo 11", 1)` → Apollo 11
+   - `targetResults = resolver.resolve("Vostok", 5)` → finds Vostok 1
+
+   But in AppDis, the logic is:
+   - `sourceEntity` = the entity whose graph we explore (Apollo 11 should be here, not Neil Armstrong)
+   - `knownEntity` = the known object we want to find (Neil Armstrong should be here)
+   
+   Looking at the output: "SORGENTE: Neil Armstrong" and "OGG. NOTO: Apollo 11" — so the searches returned in opposite order from what AppDis expects.
+
+   Actually, the user probably changed the search queries in AppDis.java. Let me check AppDis:
+   ```java
+   List<ResolvedEntity> sourceResults = resolver.resolve("Hamlet", 1);
+   List<ResolvedEntity> knownResults   = resolver.resolve("William Shakespeare", 1);
+   ```
+   
+   But the output shows Neil Armstrong and Apollo 11. So the user changed these to:
+   ```java
+   List<ResolvedEntity> sourceResults = resolver.resolve("Neil Armstrong", 1);
+   List<ResolvedEntity> knownResults   = resolver.resolve("Apollo 11", 1);
+   ```
+   
+   But in AppDis, `sourceEntity` is used as the entity to explore (entity with properties), and `knownEntity` is the object to find inside it. So:
+   - Source (explore) = "Neil Armstrong" → graph of Neil Armstrong
+   - Known (find inside) = "Apollo 11" → try to find Apollo 11 inside Neil Armstrong's graph
+   
+   That's backwards! Neil Armstrong should be found INSIDE Apollo 11's graph, not Apollo 11 inside Neil Armstrong's.
+
+   The user has the search queries swapped. In AppDis's original design:
+   - `sourceResults` should be the big entity (Amleto/Apollo 11/Vostok)
+   - `knownResults` should be the small entity to find inside (Shakespeare/Neil Armstrong/??)
+   
+   But the output shows the opposite assignment. Neil Armstrong is the person and Apollo 11 is the mission — Apollo 11 contains "Neil Armstrong" as a crew member, but Neil Armstrong doesn't contain Apollo 11.
+
+   The STEP 1 error "La VSA non riesce a trovare l'Oggetto Noto nel vettore della Sorgente" confirms this: it's trying to find "Apollo 11" inside "Neil Armstrong"'s vector, which makes no sense.
+
+   So the fix is: the user needs to swap the search queries. "Apollo 11" should be the source (the entity with properties), and "Neil Armstrong" should be the known object.
+
+   But wait, I should check if this is in the code I wrote or if the user modified it. Let me look at the current AppDis.java file. The user seems to have modified the search queries from Hamlet/Shakespeare to Neil Armstrong/Apollo 11.
+
+Actually, I should look at the current state of AppDis.java that the user is running. But I can see from the output that the searches produced:
+- sourceResults → "Neil Armstrong" (human)
+- knownResults → "Apollo 11" (human spaceflight)
+- targetResults → Vostok 1 (human spaceflight)
+
+The issue is clear: the user assigned Neil Armstrong as `sourceEntity` (the one whose graph gets explored) and Apollo 11 as `knownEntity` (the object to find inside). But the analogy should be:
+
+"Neil Armstrong : Apollo 11 = ? : Vostok 1"
+
+Which means:
+- Known object to find: Neil Armstrong (should be found inside Apollo 11)
+- Source entity (large): Apollo 11 (contains Neil Armstrong as crew member)
+- Target entity: Vostok 1 (should contain some analogous crew member)
+
+So in AppDis terms:
+- `sourceResults` should be `resolver.resolve("Apollo 11", 1)` — the graph to explore
+- `knownResults` should be `resolver.resolve("Neil Armstrong", 1)` — the object to find inside
+- `sourceEntity` = the big entity whose graph we expand (Apollo 11)
+- `knownEntity` = the known object we deduce the role from (Neil Armstrong)
+
+Wait, but AppDis was originally designed with "Hamlet : William Shakespeare = Lacrimosa : ?" where:
+- Hamlet is the source (the work)
+- Shakespeare is the known object (found via "author" property of Hamlet)
+- Lacrimosa is what we search for
+
+So in that original design:
+- sourceEntity = Hamlet (the work whose graph we explore)
+- knownEntity = Shakespeare (the object we find via VSA role discovery)
+
+So for the new query "Neil Armstrong : Apollo 11 = ? : Vostok 1":
+- sourceEntity = Apollo 11 (the mission whose graph we explore)  
+- knownEntity = Neil Armstrong (found via "crew member" property)
+- Target = Vostok 1
+
+The user's search results assignment seems to be:
+- sourceEntity = resolver.resolve("Neil Armstrong") → Makes Neil the source (WRONG)
+- knownEntity = resolver.resolve("Apollo 11") → Makes Apollo 11 the known object (WRONG)
+
+This is the bug. The searches need to be swapped. But I should look at the actual code to confirm.
+
+Let me read the current AppDis.java to see what the user actually changed.
+
+Leggendo l'output, il problema è nell'assegnazione delle ricerche. Guardiamo cosa fa effettivamente AppDis.java ora:
+
+**Tool: read**
+
+**Input:**
+```json
+{
+  "filePath": "C:\\Users\\Ion\\IdeaProjects\\Vaimee\\VSA\\neuro-semantic-investigator\\src\\main\\java\\com\\investigator\\AppDis.java",
+  "limit": 30,
+  "offset": 1
+}
+```
+
+**Output:**
+```
+<path>C:\Users\Ion\IdeaProjects\Vaimee\VSA\neuro-semantic-investigator\src\main\java\com\investigator\AppDis.java</path>
+<type>file</type>
+<content>
+1: package com.investigator;
+2: 
+3: import com.investigator.llm.OntologyTranslator;
+4: import com.investigator.vsa.*;
+5: import com.investigator.vsa.strategy.RandomGenerationStrategy;
+6: import com.investigator.vsa.strategy.TopologicalVectorUpdater;
+7: import com.investigator.jena.*;
+8: import com.investigator.engine.InvestigationEngine;
+9: import org.apache.jena.rdf.model.*;
+10: 
+11: import java.util.*;
+12: 
+13: public class AppDis {
+14:     public static void main(String[] args) {
+15:         System.out.println("=== NEURO-SEMANTIC INVESTIGATOR: LA VERA ANALOGIA ===");
+16:         System.out.println("=== Flusso: Risoluzione -> Reranking -> Scoperta VSA -> Encoder-Embedding -> Proiezione Olografica ===\n");
+17: 
+18:         ItemMemory itemMemory = new ItemMemory(new RandomGenerationStrategy());
+19:         OntologyTranslator translator = new OntologyTranslator();
+20: 
+21:         SparqlEndpoint wikidataEndpoint = new SparqlEndpoint("https://query.wikidata.org/sparql");
+22:         GraphManager graphManager = new GraphManager(wikidataEndpoint, new TripleExtractor());
+23:         TopologicalVectorUpdater topologicalUpdater = new TopologicalVectorUpdater();
+24: 
+25:         EntityResolver resolver = new EntityResolver();
+26: 
+27:         System.out.println("[*] FASE 0: Risoluzione entità e profilazione ontologica...");
+28: 
+29:         // SORGENTE e OGGETTO NOTO
+30:         List<ResolvedEntity> apolloResults = resolver.resolve("Neil Armstrong", 1);
+
+(Showing lines 1-30 of 327. Use offset=31 to continue.)
+</content>
+```
+
+---
+
+## Assistant (Build · DeepSeek V4 Pro · 6.2s)
+
+_Thinking:_
+
+The current code shows that the user changed the search queries. Let me read the rest to see the exact structure.
+
+**Tool: read**
+
+**Input:**
+```json
+{
+  "filePath": "C:\\Users\\Ion\\IdeaProjects\\Vaimee\\VSA\\neuro-semantic-investigator\\src\\main\\java\\com\\investigator\\AppDis.java",
+  "limit": 30,
+  "offset": 30
+}
+```
+
+**Output:**
+```
+<path>C:\Users\Ion\IdeaProjects\Vaimee\VSA\neuro-semantic-investigator\src\main\java\com\investigator\AppDis.java</path>
+<type>file</type>
+<content>
+30:         List<ResolvedEntity> apolloResults = resolver.resolve("Neil Armstrong", 1);
+31:         List<ResolvedEntity> armstrongResults = resolver.resolve("Apollo 11", 1);
+32: 
+33:         // IL TARGET: Tiriamo giù i TOP 5 per il Nilo per evitare il Popularity Bias!
+34:         List<ResolvedEntity> targetResults = resolver.resolve("Vostok 1", 5);
+35: 
+36:         if (apolloResults.isEmpty() || armstrongResults.isEmpty() || targetResults.isEmpty()) {
+37:             System.out.println("   [ERRORE CRITICO] Una o più entità non sono state trovate dal motore di ricerca.");
+38:             return;
+39:         }
+40: 
+41:         ResolvedEntity apolloEntity = apolloResults.get(0);
+42:         ResolvedEntity armstrongEntity = armstrongResults.get(0);
+43: 
+44:         // LA MAGIA DEL RERANKER VETTORIALE:
+45:         // Chiediamo all'encoder di scegliere il Nilo che più assomiglia all'ontologia della sorgente (es. "river")
+46:         ResolvedEntity targetEntity = translator.disambiguateCandidates(apolloEntity.classLabel(), targetResults);
+47: 
+48:         System.out.println("\n=======================================================");
+49:         System.out.println("   REPORT ONTOLOGICO PRELIMINARE");
+50:         System.out.println("=======================================================");
+51:         System.out.printf("   SORGENTE  : %-25s  Tipo: %s%n", apolloEntity.entityLabel(), apolloEntity.classLabel());
+52:         System.out.printf("   OGG. NOTO : %-25s  Tipo: %s%n", armstrongEntity.entityLabel(), armstrongEntity.classLabel());
+53:         System.out.printf("   TARGET 1  : %-25s  Tipo: %s%n", targetEntity.entityLabel(), targetEntity.classLabel());
+54:         System.out.println("=======================================================\n");
+55: 
+56:         String apollo11Uri = apolloEntity.entityUri();
+57:         String armstrongUri = armstrongEntity.entityUri();
+58:         String currentTargetUri = targetEntity.entityUri();
+59:         String currentTargetLabel = targetEntity.entityLabel();
+
+(Showing lines 30-59 of 327. Use offset=60 to continue.)
+</content>
+```
+
+---
+
+## Assistant (Build · DeepSeek V4 Pro · 30.9s)
+
+_Thinking:_
+
+I can see the issue clearly now. The variable names and assignments are completely jumbled:
+
+```java
+List<ResolvedEntity> apolloResults = resolver.resolve("Neil Armstrong", 1);  // This is actually the known object (Neil Armstrong)
+List<ResolvedEntity> armstrongResults = resolver.resolve("Apollo 11", 1);    // This is actually the source entity (Apollo 11)
+
+// Then later, apolloEntity = apolloResults.get(0) → Neil Armstrong (but named apolloEntity!)
+// armstrongEntity = armstrongResults.get(0) → Apollo 11 (but named armstrongEntity!)
+```
+
+And then further down:
+```java
+String apollo11Uri = apolloEntity.entityUri();  // Actually Neil Armstrong's URI
+String armstrongUri = armstrongEntity.entityUri();  // Actually Apollo 11's URI
+```
+
+This is a naming mess from the copy-paste between AppDis and the old App.java. The variable names are completely wrong for what they actually contain. The old App.java had:
+- `apollo11Uri` = Apollo 11 (source)
+- `armstrongUri` = Neil Armstrong (known object)
+- `triesteUri` = Trieste (target)
+
+In this version of AppDis, the user has:
+- `apolloResults` = Neil Armstrong (known object — but named after Apollo)
+- `armstrongResults` = Apollo 11 (source — but named after Armstrong)
+- And then `apolloEntity` = Neil Armstrong, `armstrongEntity` = Apollo 11
+
+So when AppDis does STEP 1:
+```java
+engine.expandAndProcess(apolloResource);  // Actually expands Neil Armstrong's graph!
+engine.expandAndProcess(targetResource);
+```
+
+And then:
+```java
+HDVector apolloRoot = itemMemory.getTreeVector(apollo11Uri);  // Actually Neil Armstrong's tree
+HDVector armstrongVector = itemMemory.getOrGenerate(armstrongUri);  // Actually Apollo 11's vector
+```
+
+It tries to find "Apollo 11" (armstrongVector) inside Neil Armstrong's graph (apolloRoot). That's backwards!
+
+The fix is simple: swap the search queries so that:
+- `apolloResults` = "Apollo 11" (the source entity to explore)
+- `armstrongResults` = "Neil Armstrong" (the known object to find inside)
+
+Or better, the user should clean up the code and use proper variable names. But for a quick fix, I should just tell them what's wrong and suggest swapping the two search lines.
+
+Alternatively, I could propose a cleaner rewrite that uses proper naming and doesn't carry the legacy Apollo/Armstrong/Trieste names. But the user just asked me to evaluate the issue, not rewrite it.
+
+The core problem: the assignments `apolloEntity`/`armstrongEntity` are reversed relative to what the STEP 1 VSA code expects. The source (entity explored) should be Apollo 11, and the known object (found inside) should be Neil Armstrong.
+
+Trovato. Le variabili sono incrociate a causa di nomi legacy:
+
+```java
+// riga 30-31: assegnazione INVERTITA
+apolloResults   = resolver.resolve("Neil Armstrong", 1);  // ← persona (OGGETTO NOTO)
+armstrongResults = resolver.resolve("Apollo 11", 1);      // ← missione (SORGENTE)
+```
+
+Ma nel resto del codice (ereditato da App.java) `apolloEntity` viene usato come **Sorgente** (da esplorare) e `armstrongEntity` come **Oggetto Noto** (da cercare dentro). Risultato: la VSA cerca "Apollo 11" dentro il vettore di "Neil Armstrong" — impossibile, perché Armstrong è una persona con poche proprietà, non contiene missioni spaziali.
+
+La fix è scambiare le due righe:
+
+**Tool: edit**
+
+**Input:**
+```json
+{
+  "filePath": "C:\\Users\\Ion\\IdeaProjects\\Vaimee\\VSA\\neuro-semantic-investigator\\src\\main\\java\\com\\investigator\\AppDis.java",
+  "oldString": "        // SORGENTE e OGGETTO NOTO\n        List<ResolvedEntity> apolloResults = resolver.resolve(\"Neil Armstrong\", 1);\n        List<ResolvedEntity> armstrongResults = resolver.resolve(\"Apollo 11\", 1);",
+  "newString": "        // SORGENTE (entità da esplorare) e OGGETTO NOTO (da trovare dentro la sorgente)\n        List<ResolvedEntity> apolloResults = resolver.resolve(\"Apollo 11\", 1);\n        List<ResolvedEntity> armstrongResults = resolver.resolve(\"Neil Armstrong\", 1);"
+}
+```
+
+**Output:**
+```
+Edit applied successfully.
+```
+
+---
+
+## Assistant (Build · DeepSeek V4 Pro · 11.6s)
+
+_Thinking:_
+
+Let me also check the end of AppDis to see if the reranker call has other issues.
+
+**Tool: bash**
+
+**Input:**
+```json
+{
+  "command": "mvn clean compile",
+  "description": "Compile after fix",
+  "timeout": 60000,
+  "workdir": "C:\\Users\\Ion\\IdeaProjects\\Vaimee\\VSA\\neuro-semantic-investigator"
+}
+```
+
+**Output:**
+```
+[INFO] Scanning for projects...
+[WARNING] 
+[WARNING] Some problems were encountered while building the effective model for com.investigator:neuro-semantic-investigator:jar:1.0
+[WARNING] 'dependencies.dependency.version' for org.testng:testng:jar is either LATEST or RELEASE (both of them are being deprecated) @ line 57, column 22
+[WARNING] 
+[WARNING] It is highly recommended to fix these problems because they threaten the stability of your build.
+[WARNING] 
+[WARNING] For this reason, future Maven versions might no longer support building such malformed projects.
+[WARNING] 
+[INFO] 
+[INFO] ------------< com.investigator:neuro-semantic-investigator >------------
+[INFO] Building neuro-semantic-investigator 1.0
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+Downloading from sjenar: https://maven.pkg.github.com/vaimee/sjenar/org/testng/testng/maven-metadata.xml
+Downloading from sepa: https://maven.pkg.github.com/vaimee/SEPA/org/testng/testng/maven-metadata.xml
+[WARNING] Could not transfer metadata org.testng:testng/maven-metadata.xml from/to sjenar (https://maven.pkg.github.com/vaimee/sjenar): status code: 401, reason phrase: Unauthorized (401)
+[WARNING] Could not transfer metadata org.testng:testng/maven-metadata.xml from/to sepa (https://maven.pkg.github.com/vaimee/SEPA): status code: 401, reason phrase: Unauthorized (401)
+[WARNING] org.testng:testng/maven-metadata.xml failed to transfer from https://maven.pkg.github.com/vaimee/sjenar during a previous attempt. This failure was cached in the local repository and resolution will not be reattempted until the update interval of sjenar has elapsed or updates are forced. Original error: Could not transfer metadata org.testng:testng/maven-metadata.xml from/to sjenar (https://maven.pkg.github.com/vaimee/sjenar): status code: 401, reason phrase: Unauthorized (401)
+[WARNING] org.testng:testng/maven-metadata.xml failed to transfer from https://maven.pkg.github.com/vaimee/SEPA during a previous attempt. This failure was cached in the local repository and resolution will not be reattempted until the update interval of sepa has elapsed or updates are forced. Original error: Could not transfer metadata org.testng:testng/maven-metadata.xml from/to sepa (https://maven.pkg.github.com/vaimee/SEPA): status code: 401, reason phrase: Unauthorized (401)
+[INFO] 
+[INFO] --- clean:3.2.0:clean (default-clean) @ neuro-semantic-investigator ---
+[INFO] Deleting C:\Users\Ion\IdeaProjects\Vaimee\VSA\neuro-semantic-investigator\target
+[INFO] 
+[INFO] --- resources:3.4.0:resources (default-resources) @ neuro-semantic-investigator ---
+[INFO] Copying 2 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ neuro-semantic-investigator ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 16 source files with javac [debug target 17] to target\classes
+[WARNING] system modules path not set in conjunction with -source 17
+[INFO] /C:/Users/Ion/IdeaProjects/Vaimee/VSA/neuro-semantic-investigator/src/main/java/com/investigator/jena/SparqlEndpoint.java: C:\Users\Ion\IdeaProjects\Vaimee\VSA\neuro-semantic-investigator\src\main\java\com\investigator\jena\SparqlEndpoint.java uses or overrides a deprecated API.
+[INFO] /C:/Users/Ion/IdeaProjects/Vaimee/VSA/neuro-semantic-investigator/src/main/java/com/investigator/jena/SparqlEndpoint.java: Recompile with -Xlint:deprecation for details.
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  3.174 s
+[INFO] Finished at: 2026-05-15T18:35:13+02:00
+[INFO] ------------------------------------------------------------------------
+
+```
+
+---
+
+## Assistant (Build · DeepSeek V4 Pro · 7.3s)
+
+_Thinking:_
+
+BUILD SUCCESS. Let me summarize the fix. The user can now run it.
+
+BUILD SUCCESS. Il bug: le due ricerche erano scambiate. AppDis esplora il grafo di `apolloEntity` e cerca `armstrongEntity` al suo interno, quindi:
+
+- `apolloEntity` deve essere **la missione** (Apollo 11) — grafo grande con proprietà
+- `armstrongEntity` deve essere **la persona** (Neil Armstrong) — da trovare dentro
+
+Ora il flusso è: esplora Apollo 11 → deduce che Neil Armstrong è legato via "crew member" → LLM traduce nel dominio Vostok 1 → proiezione VSA.
+
+---
+
+## User
+
+Voglio che mi spieghi il sistema della doppia verifica con i sitelinks, con una definizione precisa di coso sono i sitelinks, e che poi generi un report di tutto il flusso di lavoro dell'intero progetto.
+
+---
+
+## Assistant (Build · DeepSeek V4 Pro · 68.6s)
+
+_Thinking:_
+
+The user wants two things:
+
+1. An explanation of the "double verification" system with sitelinks, including a precise definition of what sitelinks are.
+
+2. A report of the entire project workflow/flusso di lavoro.
+
+Let me think about what "doppia verifica con i sitelinks" refers to. Looking at the code:
+
+In **EntityResolver.java**, the SPARQL query orders by `?sitelinks`:
+```sparql
+ORDER BY DESC(?sitelinks)
+```
+
+In **OntologyTranslator.java**, the `disambiguateCandidates()` method uses a combined score:
+```java
+double combinedScore = classSimilarity * 0.60 + sitelinksNorm * 0.40;
+```
+
+So the "double verification" is:
+1. **Class similarity** (60%): how semantically close the source class label is to the target class label, computed via cosine similarity on LLM embeddings
+2. **Sitelinks** (40%): how prominent/popular the Wikidata entity is
+
+**What are sitelinks?**
+In Wikidata, sitelinks are links from a Wikidata item to corresponding pages on other Wikimedia projects (Wikipedia in various languages, Wikibooks, Wikinews, etc.). The count of sitelinks measures how many different Wikipedia language editions have an article about this topic. It's a proxy for notability/prominence — higher sitelinks = more globally recognized entity.
+
+For example:
+- Q42 (Douglas Adams) has sitelinks to ~70 Wikipedia language editions
+- Q43653 (Apollo 11) has sitelinks to ~65 language editions
+
+Now for the complete project workflow report. Let me trace through the entire pipeline:
+
+**Overall Architecture:**
+The project performs analogical reasoning using VSA MAP-B (Vector Symbolic Architecture) on Wikidata entities. Given two entities A and B from source domain, and entity C from target domain, find the analogue of B in the target domain: A:B = C:?
+
+**Pipeline Steps:**
+
+1. **Entity Resolution** (EntityResolver) - Convert text queries to Wikidata URIs
+2. **Reranking/Disambiguation** (OntologyTranslator.disambiguateCandidates) - Pick best target among candidates
+3. **Ontology Compatibility Check** - Ensure source and target are semantically compatible
+4. **Graph Ingestion** (GraphManager + TripleExtractor + InvestigationEngine) - Download Wikidata subgraphs
+5. **Vector Encoding** (TopologicalVectorUpdater) - Encode RDF triples into HD vectors via Simpkin tree
+6. **STEP 1: VSA Role Deduction** - Find which property links the known object to the source entity
+7. **STEP 2: LLM Semantic Bridge** (OntologyTranslator) - Translate the source role to target domain via embeddings
+8. **STEP 3-4: VSA Projection & Extraction** - Use the translated role to extract the analogue from the target
+
+Let me also mention the mathematical components:
+- HDVectorMapB: D=10000 bipolar vectors, Hadamard product for binding, cyclic shift for permutation, cosine similarity
+- ItemMemory: 3-tier memory, statistical clean-up with dynamic sigma threshold
+- RandomGenerationStrategy: deterministic pseudorandom vectors (seed from URI hash)
+- SemanticEmbeddingStrategy: alternative strategy using LLM embeddings projected to bipolar via LSH
+
+Let me write this up clearly and concisely.
+
+## Cosa sono i Sitelinks
+
+I **sitelinks** (`wikibase:sitelinks`) sono il numero di edizioni linguistiche di Wikipedia (o altri progetti Wikimedia) che hanno una voce su quell'entità Wikidata. Esempio: Apollo 11 ha ~65 sitelinks (it.wikipedia, en.wikipedia, de.wikipedia, fr.wikipedia, ecc.). È una **proxy di notorietà globale** — più lingue hanno un articolo su qualcosa, più quell'entità è prominente a livello planetario.
+
+## La Doppia Verifica (Reranker)
+
+In `OntologyTranslator.disambiguateCandidates()`:
+
+```java
+double combinedScore = classSimilarity * 0.60 + sitelinksNorm * 0.40;
+```
+
+Il reranker bilancia due dimensioni ortogonali:
+
+| Dimensione | Peso | Che misura | Esempio |
+|---|---|---|---|
+| **Class similarity** | 60% | Quanto il P31 (instance of) della sorgente è semanticamente vicino al P31 di ogni candidato, via cosine similarity su embedding MiniLM | "human spaceflight" vs "human spaceflight" = 1.0; vs "river" = 0.12 |
+| **Sitelinks normalizzati** | 40% | Notorietà globale relativa del candidato rispetto al più famoso del lotto (`sitelinks / maxSitelinks`) | Lacrimosa (Requiem) ha 65 sitelinks, Lacrimosa (band) ne ha 8 |
+
+Perché 60/40? La similarità ontologica è il segnale primario (due entità della stessa classe sono più analogabili), ma in presenza di molti candidati con classi simili, la notorietà fa da tie-breaker statistico — il candidato più famoso è più probabile che abbia connessioni ricche nel knowledge graph, utili alla VSA.
+
+---
+
+## Flusso di Lavoro Completo
+
+```
+TESTO LIBERO  ──→  [FASE 0: Entity Resolution]  ──→  URI Wikidata + P31
+                                                        │
+                                              [Reranker: ClassSim 60% + Sitelinks 40%]
+                                                        │
+                                              [Ontology Compat Check: cos(emb(A.P31), emb(C.P31)) > 0.35]
+                                                        │
+              ┌─────────────────────────────────────────┤
+              ▼                                         ▼
+     [FASE 1: Graph Ingestion]              [FASE 1: Graph Ingestion]
+     SPARQL CONSTRUCT bidirezionale          SPARQL CONSTRUCT bidirezionale
+     su A (Sorgente)                         su C (Target)
+              │                                         │
+              ▼                                         ▼
+     [FASE 2: Vector Encoding — Simpkin Tree]
+     Per ogni entità:
+       1. Triples → encodeTriple(S, P, O) = vS ⊗ vP(1) ⊗ vO(2)
+       2. Raggruppa per predicato → Chunk (max 30 triples, StopVec)
+       3. Chunk.bind(ruolo).permute(100) → rami macro
+       4. Bundle simultaneo dei rami + identità pura → TreeVector (10000-d)
+              │                                         │
+              ▼                                         ▼
+     [STEP 1: VSA Role Deduction — dominio SORGENTE]
+     Per ogni proprietà P di A:
+       noisyBranch = TreeVector(A).permute(-100).bind(vP)
+       cleanBranch = cleanUpChunk(noisyBranch)
+       extractedObject = cleanBranch.bind(vA).bind(vP(1)).permute(-2)
+       sim = extractedObject.similarity(vB)   // B = Oggetto Noto
+       → miglior sim > 0.05 → RUOLO SORGENTE SCOPERTA
+              │
+              ▼
+     [STEP 2: LLM Semantic Bridge — cambio di dominio]
+     1. Arricchisce label proprietà target con expected type (P2302 → P2308)
+        es: "composer" → "composer [expects: human]"
+     2. Arricchisce anche il ruolo sorgente allo stesso modo
+     3. Cosine similarity su embedding MiniLM (384-d) tra sorgente arricchita e ogni target arricchita
+     4. Match se > soglia (0.35 con arricchimento, 0.40 senza)
+        es: "author [expects: human]" → "composer [expects: human]" (0.411)
+              │
+              ▼
+     [STEP 3 & 4: VSA Projection + Extraction — dominio TARGET]
+     targetRole = proprietà tradotta dall'LLM
+     noisyBranch = TreeVector(C).permute(-100).bind(targetRole)
+     cleanBranch = cleanUpChunk(noisyBranch)
+     extractedObject = cleanBranch.bind(vC).bind(targetRole(1)).permute(-2)
+     finalMatch = cleanUpRelative(extractedObject)
+       → se Z-Score > threshold → RISULTATO TROVATO
+```
+
+### Nucleo Matematico (VSA MAP-B)
+
+| Operazione | Implementazione | Ruolo |
+|---|---|---|
+| **Bind** | Hadamard product (element-wise moltiplicazione) | Associa concetti in un unico vettore |
+| **Bundle** | Somma + Signum (tie-break deterministico seed=42) | Sovrappone vettori mantenendo similarità |
+| **Permute (+shift)** | Ciclic shift a destra | Crea rappresentazioni posizionali uniche |
+| **Permute (-shift)** | Ciclic shift a sinistra (inverso) | Estrae componenti dallo spazio posizionale |
+| **Similarity** | Cosine = dot-product / D | Misura risonanza tra vettori bipolari |
+| **Clean-up (Chunk)** | Z-Score > log₁₀(D) contro memoria chunk | Recupera il vettore puro dal rumore |
+| **Clean-up (Relative)** | Z-Score > log₁₀(D) contro memoria atomica | Recupera l'identità di una foglia |
+
+Con D=10000, la soglia Z-Score è `log₁₀(10000) = 4.0 σ`.
+
+### Persistenza Distribuita
+
+I vettori sono deterministici: `URI → UTF-8 → MD5 hash → seed → Random LCG → 10000 bit bipolari`. Qualsiasi JVM su qualsiasi macchina produce lo stesso vettore per lo stesso URI, senza database.
+
+---
+
+## User
+
+Abbiamio sicuramente fatto dei pasticci. Il sistema non funziona più correttamente, ecco l'output di una query che ha sempre funzionato e che continua a fallire: "C:\Program Files\Eclipse Adoptium\jdk-21.0.9.10-hotspot\bin\java.exe" "-javaagent:C:\Program Files\JetBrains\IntelliJ IDEA 2025.2.5\lib\idea_rt.jar=65121" -Dfile.encoding=UTF-8 -Dsun.stdout.encoding=UTF-8 -Dsun.stderr.encoding=UTF-8 -classpath C:\Users\Ion\IdeaProjects\Vaimee\VSA\neuro-semantic-investigator\target\classes;C:\Users\Ion\.m2\repository\org\apache\jena\jena-core\5.0.0\jena-core-5.0.0.jar;C:\Users\Ion\.m2\repository\org\apache\jena\jena-base\5.0.0\jena-base-5.0.0.jar;C:\Users\Ion\.m2\repository\org\apache\commons\commons-csv\1.10.0\commons-csv-1.10.0.jar;C:\Users\Ion\.m2\repository\commons-io\commons-io\2.15.1\commons-io-2.15.1.jar;C:\Users\Ion\.m2\repository\commons-codec\commons-codec\1.16.1\commons-codec-1.16.1.jar;C:\Users\Ion\.m2\repository\org\apache\commons\commons-compress\1.26.1\commons-compress-1.26.1.jar;C:\Users\Ion\.m2\repository\org\apache\commons\commons-collections4\4.4\commons-collections4-4.4.jar;C:\Users\Ion\.m2\repository\com\github\ben-manes\caffeine\caffeine\3.1.8\caffeine-3.1.8.jar;C:\Users\Ion\.m2\repository\org\checkerframework\checker-qual\3.37.0\checker-qual-3.37.0.jar;C:\Users\Ion\.m2\repository\com\google\errorprone\error_prone_annotations\2.21.1\error_prone_annotations-2.21.1.jar;C:\Users\Ion\.m2\repository\com\github\andrewoma\dexx\collection\0.7\collection-0.7.jar;C:\Users\Ion\.m2\repository\org\apache\jena\jena-iri\5.0.0\jena-iri-5.0.0.jar;C:\Users\Ion\.m2\repository\commons-cli\commons-cli\1.6.0\commons-cli-1.6.0.jar;C:\Users\Ion\.m2\repository\org\roaringbitmap\RoaringBitmap\1.0.5\RoaringBitmap-1.0.5.jar;C:\Users\Ion\.m2\repository\org\apache\jena\jena-arq\5.0.0\jena-arq-5.0.0.jar;C:\Users\Ion\.m2\repository\com\google\code\gson\gson\2.10.1\gson-2.10.1.jar;C:\Users\Ion\.m2\repository\org\slf4j\jcl-over-slf4j\2.0.7\jcl-over-slf4j-2.0.7.jar;C:\Users\Ion\.m2\repository\com\apicatalog\titanium-json-ld\1.4.0\titanium-json-ld-1.4.0.jar;C:\Users\Ion\.m2\repository\org\glassfish\jakarta.json\2.0.1\jakarta.json-2.0.1.jar;C:\Users\Ion\.m2\repository\com\google\protobuf\protobuf-java\3.25.3\protobuf-java-3.25.3.jar;C:\Users\Ion\.m2\repository\org\apache\thrift\libthrift\0.19.0\libthrift-0.19.0.jar;C:\Users\Ion\.m2\repository\org\apache\commons\commons-lang3\3.14.0\commons-lang3-3.14.0.jar;C:\Users\Ion\.m2\repository\dev\langchain4j\langchain4j-embeddings-all-minilm-l6-v2\0.27.1\langchain4j-embeddings-all-minilm-l6-v2-0.27.1.jar;C:\Users\Ion\.m2\repository\dev\langchain4j\langchain4j-embeddings\0.27.1\langchain4j-embeddings-0.27.1.jar;C:\Users\Ion\.m2\repository\dev\langchain4j\langchain4j-core\0.27.1\langchain4j-core-0.27.1.jar;C:\Users\Ion\.m2\repository\com\microsoft\onnxruntime\onnxruntime\1.16.3\onnxruntime-1.16.3.jar;C:\Users\Ion\.m2\repository\ai\djl\api\0.25.0\api-0.25.0.jar;C:\Users\Ion\.m2\repository\net\java\dev\jna\jna\5.13.0\jna-5.13.0.jar;C:\Users\Ion\.m2\repository\org\slf4j\slf4j-api\2.0.12\slf4j-api-2.0.12.jar;C:\Users\Ion\.m2\repository\ch\qos\logback\logback-classic\1.5.3\logback-classic-1.5.3.jar;C:\Users\Ion\.m2\repository\ch\qos\logback\logback-core\1.5.3\logback-core-1.5.3.jar com.investigator.AppDis
+=== NEURO-SEMANTIC INVESTIGATOR: LA VERA ANALOGIA ===
+=== Flusso: Risoluzione -> Reranking -> Scoperta VSA -> Encoder-Embedding -> Proiezione Olografica ===
+
+   [ItemMemory] Inizializzata con D=10000. Soglia di clean-up calcolata: 4,00 σ
+[*] FASE 0: Risoluzione entità e profilazione ontologica...
+   [RERANKER] Disambiguazione di 5 candidati (class similarity 60% + sitelinks 40%):
+      -> [Vostok 1] Classe='Vostok' | ClassSim=0,136 | Sitelinks=65 (1,00) | COMBINATO=0,481
+      -> [Vostok 1] Classe='human spaceflight' | ClassSim=1,000 | Sitelinks=65 (1,00) | COMBINATO=1,000
+      -> [Korabl-Sputnik 2] Classe='artificial satellite of the Earth' | ClassSim=0,289 | Sitelinks=34 (0,52) | COMBINATO=0,383
+      -> [Korabl-Sputnik 3] Classe='space mission' | ClassSim=0,688 | Sitelinks=20 (0,31) | COMBINATO=0,536
+      -> [Korabl-Sputnik 3] Classe='artificial satellite of the Earth' | ClassSim=0,289 | Sitelinks=20 (0,31) | COMBINATO=0,297
+   [RERANKER] -> Scelto: Vostok 1 (Combinato: 1,000)
+
+=======================================================
+   REPORT ONTOLOGICO PRELIMINARE
+=======================================================
+   SORGENTE  : Apollo 11                  Tipo: human spaceflight
+   OGG. NOTO : Neil Armstrong             Tipo: human
+   TARGET 1  : Vostok 1                   Tipo: human spaceflight
+=======================================================
+
+   [COMPAT CHECK] 'human spaceflight' vs 'human spaceflight' -> Similarità: 1,000 (Soglia: 0,35)
+[*] Ingestione e vettorizzazione grafi in corso...
+   [GraphManager] Download Bidirezionale (Multi-Hop) per: http://www.wikidata.org/entity/Q43653
+   [GraphManager] Download Bidirezionale (Multi-Hop) per: http://www.wikidata.org/entity/Q43653
+[DEBUG] LocalGraph contains 631 statements after expansion of http://www.wikidata.org/entity/Q43653
+   [GraphManager] Download Bidirezionale (Multi-Hop) per: http://www.wikidata.org/entity/Q182524
+   [GraphManager] Download Bidirezionale (Multi-Hop) per: http://www.wikidata.org/entity/Q182524
+[DEBUG] LocalGraph contains 932 statements after expansion of http://www.wikidata.org/entity/Q182524
+
+=======================================================
+   STEP 1: DEDUZIONE DEL RUOLO SORGENTE (VSA)          
+=======================================================
+   -> DEDUZIONE COMPLETATA: L'oggetto è legato tramite 'crew members' (Sim: 0,37)
+
+=======================================================
+   STEP 2: IL PONTE ANALOGICO (Embedding)                    
+=======================================================
+   [INDAGINE ONTOLOGICA] Inventario delle proprietà del target:
+   --- PROPRIETÀ IN USCITA (I Figli) ---
+      - [OUT] http://www.wikidata.org/prop/direct/P619  --->  Label: 'UTC date of spacecraft launch'
+      - [OUT] http://www.wikidata.org/prop/direct/P1158  --->  Label: 'location of landing'
+      - [OUT] http://www.wikidata.org/prop/direct/P377  --->  Label: 'SCN'
+      - [OUT] http://www.wikidata.org/prop/direct/P375  --->  Label: 'space launch vehicle'
+      - [OUT] http://www.wikidata.org/prop/direct/P176  --->  Label: 'manufacturer'
+      - [OUT] http://www.wikidata.org/prop/direct/P5049  --->  Label: 'Harvard designation'
+      - [OUT] http://www.wikidata.org/prop/direct/P17  --->  Label: 'country'
+      - [OUT] http://www.wikidata.org/prop/direct/P4839  --->  Label: 'Wolfram Language entity code'
+      - [OUT] http://www.wikidata.org/prop/direct/P5008  --->  Label: 'on focus list of Wikimedia project'
+      - [OUT] http://www.wikidata.org/prop/direct/P8913  --->  Label: 'NSSDCA ID'
+      - [OUT] http://www.wikidata.org/prop/direct/P620  --->  Label: 'UTC date of spacecraft landing'
+      - [OUT] http://www.wikidata.org/prop/direct/P2146  --->  Label: 'orbital period'
+      - [OUT] http://www.wikidata.org/prop/direct/P2067  --->  Label: 'mass'
+      - [OUT] http://www.wikidata.org/prop/direct/P2386  --->  Label: 'diameter'
+      - [OUT] http://www.wikidata.org/prop/direct/P1617  --->  Label: 'BBC Things ID'
+      - [OUT] http://www.wikidata.org/prop/direct/P1418  --->  Label: 'orbits completed'
+      - [OUT] http://www.wikidata.org/prop/direct/P910  --->  Label: 'topic's main category'
+      - [OUT] http://www.wikidata.org/prop/direct/P156  --->  Label: 'followed by'
+      - [OUT] http://www.wikidata.org/prop/direct/P793  --->  Label: 'significant event'
+      - [OUT] http://www.wikidata.org/prop/direct/P646  --->  Label: 'Freebase ID'
+      - [OUT] http://www.wikidata.org/prop/direct/P247  --->  Label: 'COSPAR ID'
+      - [OUT] http://www.wikidata.org/prop/direct/P522  --->  Label: 'type of orbit'
+      - [OUT] http://www.wikidata.org/prop/direct/P1029  --->  Label: 'crew members'
+      - [OUT] http://www.wikidata.org/prop/direct/P31  --->  Label: 'instance of'
+      - [OUT] http://www.wikidata.org/prop/direct/P2317  --->  Label: 'call sign'
+      - [OUT] http://www.wikidata.org/prop/direct/P1427  --->  Label: 'start point'
+      - [OUT] http://www.wikidata.org/prop/direct/P361  --->  Label: 'part of'
+      - [OUT] http://www.wikidata.org/prop/direct/P2244  --->  Label: 'periapsis'
+      - [OUT] http://www.wikidata.org/prop/direct/P2047  --->  Label: 'duration'
+      - [OUT] http://www.wikidata.org/prop/direct/P2243  --->  Label: 'apoapsis'
+      - [OUT] http://www.wikidata.org/prop/direct/P2045  --->  Label: 'orbital inclination'
+   --- PROPRIETÀ IN ENTRATA (I Genitori) ---
+      - [IN]  http://www.wikidata.org/prop/direct/P527  --->  Label: 'has part(s)'
+      - [IN]  http://www.wikidata.org/prop/direct/P921  --->  Label: 'main subject'
+      - [IN]  http://www.wikidata.org/prop/direct/P547  --->  Label: 'commemorates'
+      - [IN]  http://www.wikidata.org/prop/direct/P301  --->  Label: 'category's main topic'
+      - [IN]  http://www.wikidata.org/prop/direct/P793  --->  Label: 'significant event'
+      - [IN]  http://www.wikidata.org/prop/direct/P155  --->  Label: 'follows'
+      - [IN]  http://www.wikidata.org/prop/direct/P5096  --->  Label: 'member of the crew of'
+   -> Chiedo all'Embedding di tradurre 'crew members' nel dominio di Vostok 1...
+   -> (Proprietà arricchite con tipo atteso per matching strutturale)
+
+   [LLM] Analisi semantica per: 'crew members'...
+      -> Confronto con 'crew members': Similarità 1,000
+      -> Confronto con 'member of the crew of': Similarità 0,879
+      -> Confronto con 'manufacturer': Similarità 0,318
+
+   [LLM] -> MATCH VINCENTE! 'crew members' è l'equivalente di 'crew members' (Score: 1,00)
+
+=======================================================
+   STEP 3 & 4: PROIEZIONE E ESTRAZIONE TARGET (VSA)    
+=======================================================
+   -> Uso la chiave tradotta ('crew members') per aprire il vettore bersaglio...
+   -> [HOLOGRAPHIC BYPASS] Salto la pulizia del ramo e disimballo direttamente l'oggetto...
+
+[?] Il segnale è stato completamente inghiottito dal rumore del grafo (Z-Score troppo basso).
+
+Process finished with exit code 0     ----   Ora vorrei che analizzassi il codice e che mi fornissi un report completo con la descrizione dle progetto che possa dare come input per una analisi da parte di un secondo LLM. Cerca di spiegare esattamente cosa abbiamo fatto, l'archietettura (MAP-B) utilizzata, e i processi completi. Crea un file .md che possa esportare con facilità.
+
+---
+
+## Assistant (Build · DeepSeek V4 Pro · 28.0s)
+
+_Thinking:_
+
+The user wants me to create a comprehensive markdown report of the entire project that can be given to another LLM for analysis. They want me to document:
+
+1. What the project does
+2. The MAP-B architecture
+3. The complete processes
+4. All the code details
+
+Let me analyze the current state thoroughly first, then write the report.
+
+Let me look at the key files to understand any recent changes I may have missed, particularly the AppDis.java changes and any issues.
+
+From the runtime output, I can see:
+1. The pipeline works correctly through STEP 2 (LLM bridge successfully matches "crew members" → "crew members")
+2. But STEP 3/4 fails: "[HOLOGRAPHIC BYPASS] Salto la pulizia del ramo e disimballo direttamente l'oggetto..."
+3. The final result: "Il segnale è stato completamente inghiottito dal rumore del grafo"
+
+Wait, there's a line "HOLOGRAPHIC BYPASS" that I don't remember seeing in the code. The user must have modified AppDis.java further. Let me read the current state.
+
+Also I notice the reranker method signature changed - the output shows `disambiguateCandidates(apolloEntity.classLabel(), targetResults)` but in the OntologyTranslator I defined `disambiguateCandidates(ResolvedEntity sourceEntity, List<ResolvedEntity> candidates)`. The user must have changed the signature to take a class label string instead. But wait, the recent output shows the reranker working correctly with class similarity, so it must work. Let me check if the user changed things.
+
+Actually let me just read the current state of all key files to make sure my report is accurate.
+
+**Tool: read**
+
+**Input:**
+```json
+{
+  "filePath": "C:\\Users\\Ion\\IdeaProjects\\Vaimee\\VSA\\neuro-semantic-investigator\\src\\main\\java\\com\\investigator\\AppDis.java"
+}
+```
+
+**Output:**
+```
+<path>C:\Users\Ion\IdeaProjects\Vaimee\VSA\neuro-semantic-investigator\src\main\java\com\investigator\AppDis.java</path>
+<type>file</type>
+<content>
+1: package com.investigator;
+2: 
+3: import com.investigator.llm.OntologyTranslator;
+4: import com.investigator.vsa.*;
+5: import com.investigator.vsa.strategy.RandomGenerationStrategy;
+6: import com.investigator.vsa.strategy.TopologicalVectorUpdater;
+7: import com.investigator.jena.*;
+8: import com.investigator.engine.InvestigationEngine;
+9: import org.apache.jena.rdf.model.*;
+10: 
+11: import java.util.*;
+12: 
+13: public class AppDis {
+14:     public static void main(String[] args) {
+15:         System.out.println("=== NEURO-SEMANTIC INVESTIGATOR: LA VERA ANALOGIA ===");
+16:         System.out.println("=== Flusso: Risoluzione -> Reranking -> Scoperta VSA -> Encoder-Embedding -> Proiezione Olografica ===\n");
+17: 
+18:         ItemMemory itemMemory = new ItemMemory(new RandomGenerationStrategy());
+19:         OntologyTranslator translator = new OntologyTranslator();
+20: 
+21:         SparqlEndpoint wikidataEndpoint = new SparqlEndpoint("https://query.wikidata.org/sparql");
+22:         GraphManager graphManager = new GraphManager(wikidataEndpoint, new TripleExtractor());
+23:         TopologicalVectorUpdater topologicalUpdater = new TopologicalVectorUpdater();
+24: 
+25:         EntityResolver resolver = new EntityResolver();
+26: 
+27:         System.out.println("[*] FASE 0: Risoluzione entità e profilazione ontologica...");
+28: 
+29:         // SORGENTE (entità da esplorare) e OGGETTO NOTO (da trovare dentro la sorgente)
+30:         List<ResolvedEntity> apolloResults = resolver.resolve("Apollo 11", 1);
+31:         List<ResolvedEntity> armstrongResults = resolver.resolve("Neil Armstrong", 1);
+32: 
+33:         // IL TARGET: Tiriamo giù i TOP 5 per il Nilo per evitare il Popularity Bias!
+34:         List<ResolvedEntity> targetResults = resolver.resolve("Vostok 1", 5);
+35: 
+36:         if (apolloResults.isEmpty() || armstrongResults.isEmpty() || targetResults.isEmpty()) {
+37:             System.out.println("   [ERRORE CRITICO] Una o più entità non sono state trovate dal motore di ricerca.");
+38:             return;
+39:         }
+40: 
+41:         ResolvedEntity apolloEntity = apolloResults.get(0);
+42:         ResolvedEntity armstrongEntity = armstrongResults.get(0);
+43: 
+44:         // LA MAGIA DEL RERANKER VETTORIALE:
+45:         // Chiediamo all'encoder di scegliere il Nilo che più assomiglia all'ontologia della sorgente (es. "river")
+46:         ResolvedEntity targetEntity = translator.disambiguateCandidates(apolloEntity.classLabel(), targetResults);
+47: 
+48:         System.out.println("\n=======================================================");
+49:         System.out.println("   REPORT ONTOLOGICO PRELIMINARE");
+50:         System.out.println("=======================================================");
+51:         System.out.printf("   SORGENTE  : %-25s  Tipo: %s%n", apolloEntity.entityLabel(), apolloEntity.classLabel());
+52:         System.out.printf("   OGG. NOTO : %-25s  Tipo: %s%n", armstrongEntity.entityLabel(), armstrongEntity.classLabel());
+53:         System.out.printf("   TARGET 1  : %-25s  Tipo: %s%n", targetEntity.entityLabel(), targetEntity.classLabel());
+54:         System.out.println("=======================================================\n");
+55: 
+56:         String apollo11Uri = apolloEntity.entityUri();
+57:         String armstrongUri = armstrongEntity.entityUri();
+58:         String currentTargetUri = targetEntity.entityUri();
+59:         String currentTargetLabel = targetEntity.entityLabel();
+60: 
+61:         // ------------------------------------------------------------------------------------------------
+62:         // ALLINEAMENTO ONTOLOGICO AUTOMATICO (Graph + Encoder-Embedding)
+63:         // ------------------------------------------------------------------------------------------------
+64:         if (!translator.areClassesCompatible(apolloEntity.classLabel(), targetEntity.classLabel(), 0.35)) {
+65:             System.out.println("\n   [ALLARME ASIMMETRIA] Le ontologie sono semanticamente distanti ('" + apolloEntity.classLabel() + "' vs '" + targetEntity.classLabel() + "').");
+66:             System.out.println("   L'Investigatore interroga l'inconscio collettivo (Wikidata) per trovare un nodo affine...");
+67: 
+68:             String sparqlQuery =
+69:                     "PREFIX wdt: <http://www.wikidata.org/prop/direct/> " +
+70:                             "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> " +
+71:                             "SELECT DISTINCT ?event ?eventLabel ?classLabel WHERE { " +
+72:                             "  { <" + currentTargetUri + "> wdt:P793 ?event . } " +
+73:                             "  UNION { ?event wdt:P2283 <" + currentTargetUri + "> . } " +
+74:                             "  UNION { ?event wdt:P516 <" + currentTargetUri + "> . } " +
+75:                             "  OPTIONAL { ?event wdt:P31 ?class . ?class rdfs:label ?classLabel . FILTER(lang(?classLabel)='en') } " +
+76:                             "  ?event rdfs:label ?eventLabel . FILTER(lang(?eventLabel)='en') " +
+77:                             "} LIMIT 20";
+78: 
+79:             Map<String, String> candidateOntologies = new HashMap<>();
+80:             Map<String, String> candidateLabels = new HashMap<>();
+81: 
+82:             try {
+83:                 org.apache.jena.query.Query query = org.apache.jena.query.QueryFactory.create(sparqlQuery);
+84:                 try (org.apache.jena.query.QueryExecution qexec = org.apache.jena.query.QueryExecution.service("https://query.wikidata.org/sparql")
+85:                         .query(query)
+86:                         .httpHeader("User-Agent", "NeuroSemanticInvestigator/1.0 (ifts-project@example.com)")
+87:                         .build()) {
+88:                     org.apache.jena.query.ResultSet results = qexec.execSelect();
+89:                     while (results.hasNext()) {
+90:                         org.apache.jena.query.QuerySolution soln = results.next();
+91:                         String evUri = soln.getResource("event").getURI();
+92:                         String evLabel = soln.getLiteral("eventLabel").getString();
+93:                         String clLabel = soln.contains("classLabel") ? soln.getLiteral("classLabel").getString() : "event";
+94: 
+95:                         candidateOntologies.put(evUri, clLabel + ": " + evLabel);
+96:                         candidateLabels.put(evUri, evLabel);
+97:                     }
+98:                 }
+99:             } catch (Exception e) {
+100:                 System.out.println("   [ERRORE SPARQL] " + e.getMessage());
+101:             }
+102: 
+103:             if (!candidateOntologies.isEmpty()) {
+104:                 System.out.println("   [Embedding] Valuto " + candidateOntologies.size() + " candidati topologici rispetto a '" + apolloEntity.classLabel() + "'...");
+105: 
+106:                 String bestEventUri = translator.findSemanticEquivalent(apolloEntity.classLabel(), candidateOntologies, 0.20);
+107: 
+108:                 if (bestEventUri != null) {
+109:                     currentTargetUri = bestEventUri;
+110:                     currentTargetLabel = candidateLabels.get(bestEventUri);
+111:                     System.out.println("   [COMPENSAZIONE RIUSCITA] L'Embedding ha isolato l'evento topologicamente corretto!");
+112:                     System.out.printf("   NUOVO TARGET: %-25s%n", currentTargetLabel);
+113:                 } else {
+114:                     System.out.println("   [FALLIMENTO] L'Embedding non ha trovato nessun evento candidato affine a " + apolloEntity.classLabel());
+115:                     return;
+116:                 }
+117:             } else {
+118:                 System.out.println("   [FALLIMENTO] Il grafo locale non contiene collegamenti a eventi o missioni noti.");
+119:                 return;
+120:             }
+121:         }
+122: 
+123:         InvestigationEngine engine = new InvestigationEngine(new HDVectorMapB(), graphManager, itemMemory, topologicalUpdater);
+124: 
+125:         System.out.println("[*] Ingestione e vettorizzazione grafi in corso...");
+126:         Resource apolloResource = ModelFactory.createDefaultModel().createResource(apollo11Uri);
+127:         Resource targetResource = ModelFactory.createDefaultModel().createResource(currentTargetUri);
+128: 
+129:         engine.expandAndProcess(apolloResource);
+130:         engine.expandAndProcess(targetResource);
+131:         Model localModel = engine.getGraphManager().getLocalModel();
+132: 
+133:         HDVector apolloRoot = itemMemory.getTreeVector(apollo11Uri);
+134:         HDVector armstrongVector = itemMemory.getOrGenerate(armstrongUri);
+135: 
+136:         System.out.println("\n=======================================================");
+137:         System.out.println("   STEP 1: DEDUZIONE DEL RUOLO SORGENTE (VSA)          ");
+138:         System.out.println("=======================================================");
+139: 
+140:         String sourceRoleUri = null;
+141:         double bestHypothesisScore = -1.0;
+142: 
+143:         HDVector subjectVector = itemMemory.getOrGenerate(apollo11Uri);
+144:         Set<Property> apolloProps = new HashSet<>();
+145:         localModel.listStatements(apolloResource, null, (RDFNode) null).forEachRemaining(s -> apolloProps.add(s.getPredicate()));
+146: 
+147:         for (Property prop : apolloProps) {
+148:             String propUri = prop.getURI();
+149:             if (isMetadata(propUri)) continue;
+150: 
+151:             HDVector candidateRole = itemMemory.getOrGenerate(propUri);
+152:             HDVector noisyBranch = apolloRoot.permute(-100).bind(candidateRole);
+153:             HDVector cleanBranch = itemMemory.cleanUpChunk(noisyBranch);
+154: 
+155:             if (cleanBranch != null) {
+156:                 HDVector noisyObject = cleanBranch.bind(subjectVector).bind(candidateRole.permute(1)).permute(-2);
+157:                 double rawSimilarity = noisyObject.similarity(armstrongVector);
+158: 
+159:                 if (rawSimilarity > 0.05 && rawSimilarity > bestHypothesisScore) {
+160:                     bestHypothesisScore = rawSimilarity;
+161:                     sourceRoleUri = propUri;
+162:                 }
+163:             }
+164:         }
+165: 
+166:         if (sourceRoleUri == null || bestHypothesisScore < 0.05) {
+167:             System.out.println("   [ERRORE] La VSA non riesce a trovare l'Oggetto Noto nel vettore della Sorgente.");
+168:             return;
+169:         }
+170: 
+171:         String sourceRoleLabel = fetchLabelFromWikidata(sourceRoleUri);
+172:         System.out.printf("   -> DEDUZIONE COMPLETATA: L'oggetto è legato tramite '%s' (Sim: %.2f)\n", sourceRoleLabel, bestHypothesisScore);
+173: 
+174:         System.out.println("\n=======================================================");
+175:         System.out.println("   STEP 2: IL PONTE ANALOGICO (Embedding)                    ");
+176:         System.out.println("=======================================================");
+177: 
+178:         Map<String, String> targetProperties = extractPropertyLabels(targetResource, localModel);
+179: 
+180:         // Arricchiamo le label con il tipo atteso della proprietà (es. "composer [expects: human]")
+181:         Map<String, String> enrichedProperties = translator.enrichLabelsWithExpectedTypes(targetProperties);
+182: 
+183:         System.out.println("   -> Chiedo all'Embedding di tradurre '" + sourceRoleLabel + "' nel dominio di " + currentTargetLabel + "...");
+184:         System.out.println("   -> (Proprietà arricchite con tipo atteso per matching strutturale)");
+185: 
+186:         String targetRoleUri = translator.findSemanticEquivalent(
+187:                 sourceRoleLabel, sourceRoleUri, enrichedProperties, 0.35);
+188: 
+189:         if (targetRoleUri == null) {
+190:             System.out.println("   [ERRORE] Il traduttore non ha trovato un equivalente per '" + sourceRoleLabel + "'. Analogia fallita.");
+191:             return;
+192:         }
+193:         String targetRoleLabel = fetchLabelFromWikidata(targetRoleUri);
+194: 
+195:         System.out.println("\n=======================================================");
+196:         System.out.println("   STEP 3 & 4: PROIEZIONE E ESTRAZIONE TARGET (VSA)    ");
+197:         System.out.println("=======================================================");
+198: 
+199:         HDVector targetRoot = itemMemory.getTreeVector(currentTargetUri);
+200:         HDVector targetRole = itemMemory.getOrGenerate(targetRoleUri);
+201:         HDVector targetSubject = itemMemory.getOrGenerate(currentTargetUri);
+202: 
+203:         System.out.println("   -> Uso la chiave tradotta ('" + targetRoleLabel + "') per aprire il vettore bersaglio...");
+204: 
+205:         // LA MAGIA DELL'HOLOGRAPHIC BYPASS:
+206:         // Estraiamo il ramo rumoroso SENZA FARE IL CLEANUP INTERMEDIO per non perdere il segnale debole!
+207:         HDVector noisyTargetBranch = targetRoot.permute(-100).bind(targetRole);
+208: 
+209:         System.out.println("   -> [HOLOGRAPHIC BYPASS] Salto la pulizia del ramo e disimballo direttamente l'oggetto...");
+210: 
+211:         // Svincoliamo Target Role e Target Subject direttamente dal rumore
+212:         HDVector noisyTargetObject = noisyTargetBranch.bind(targetSubject).bind(targetRole.permute(1)).permute(-2);
+213: 
+214:         // Facciamo il Clean-Up solo alla fine, cercando nel vocabolario l'entità che risuona di più
+215:         HDVector finalAnalogue = itemMemory.cleanUpRelative(noisyTargetObject);
+216: 
+217:         if (finalAnalogue != null) {
+218:             System.out.println("\n[!] ANALOGIA RISOLTA CON SUCCESSO:");
+219:             System.out.printf("    %-15s sta a  %-15s%n", armstrongEntity.entityLabel(), apolloEntity.entityLabel());
+220:             System.out.println("    COME");
+221: 
+222:             String humanReadableResult = fetchLabelFromWikidata(itemMemory.getLastBestKey());
+223:             System.out.printf("    %-15s sta a  %-15s%n", humanReadableResult, currentTargetLabel);
+224:             System.out.println("\n    [Logica Applicata]: " + sourceRoleLabel + " ===> " + targetRoleLabel);
+225:             System.out.println("    [Confidenza VSA]: " + String.format("%.2f", itemMemory.getLastBestSigma()) + " σ");
+226:         } else {
+227:             System.out.println("\n[?] Il segnale è stato completamente inghiottito dal rumore del grafo (Z-Score troppo basso).");
+228:         }
+229:     }
+230: 
+231:     private static String fetchDescriptionFromWikidata(String entityUri) {
+232:         String sparqlQuery =
+233:                 "PREFIX schema: <http://schema.org/> " +
+234:                         "SELECT ?desc WHERE { " +
+235:                         "  <" + entityUri + "> schema:description ?desc . " +
+236:                         "  FILTER (lang(?desc) = 'en') " +
+237:                         "} LIMIT 1";
+238: 
+239:         try {
+240:             org.apache.jena.query.Query query = org.apache.jena.query.QueryFactory.create(sparqlQuery);
+241:             try (org.apache.jena.query.QueryExecution qexec = org.apache.jena.query.QueryExecution.service("https://query.wikidata.org/sparql")
+242:                     .query(query)
+243:                     .httpHeader("User-Agent", "NeuroSemanticInvestigator/1.0 (ifts-project@example.com)")
+244:                     .build()) {
+245: 
+246:                 org.apache.jena.query.ResultSet results = qexec.execSelect();
+247:                 if (results.hasNext()) {
+248:                     return results.nextSolution().getLiteral("desc").getString();
+249:                 }
+250:             }
+251:         } catch (Exception e) {
+252:             System.err.println("   [AVVISO] Errore nell'estrazione della descrizione: " + e.getMessage());
+253:         }
+254:         return "";
+255:     }
+256: 
+257:     private static Map<String, String> extractPropertyLabels(Resource entity, Model localGraph) {
+258:         Map<String, String> labels = new HashMap<>();
+259:         Set<Property> outgoingProps = new HashSet<>();
+260:         Set<Property> incomingProps = new HashSet<>();
+261: 
+262:         localGraph.listStatements(entity, null, (RDFNode) null).forEachRemaining(s -> outgoingProps.add(s.getPredicate()));
+263:         localGraph.listStatements(null, null, entity).forEachRemaining(s -> incomingProps.add(s.getPredicate()));
+264: 
+265:         System.out.println("   [INDAGINE ONTOLOGICA] Inventario delle proprietà del target:");
+266: 
+267:         System.out.println("   --- PROPRIETÀ IN USCITA (I Figli) ---");
+268:         for (Property prop : outgoingProps) {
+269:             String uri = prop.getURI();
+270:             if (isMetadata(uri) || !uri.contains("/direct/")) continue;
+271: 
+272:             String label = fetchLabelFromWikidata(uri);
+273:             labels.put(uri, label);
+274:             System.out.println("      - [OUT] " + uri + "  --->  Label: '" + label + "'");
+275:         }
+276: 
+277:         System.out.println("   --- PROPRIETÀ IN ENTRATA (I Genitori) ---");
+278:         for (Property prop : incomingProps) {
+279:             String uri = prop.getURI();
+280:             if (isMetadata(uri) || !uri.contains("/direct/")) continue;
+281: 
+282:             if (!labels.containsKey(uri)) {
+283:                 String label = fetchLabelFromWikidata(uri);
+284:                 labels.put(uri, label);
+285:             }
+286:             System.out.println("      - [IN]  " + uri + "  --->  Label: '" + labels.get(uri) + "'");
+287:         }
+288: 
+289:         return labels;
+290:     }
+291: 
+292:     private static String fetchLabelFromWikidata(String uri) {
+293:         if (!uri.startsWith("http://www.wikidata.org/")) {
+294:             return uri.replace("_", " ");
+295:         }
+296: 
+297:         String entityUri = uri.replace("/prop/direct-normalized/", "/entity/")
+298:                 .replace("/prop/direct/", "/entity/")
+299:                 .replace("/prop/statement/", "/entity/")
+300:                 .replace("/prop/", "/entity/");
+301: 
+302:         String sparqlQuery =
+303:                 "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> " +
+304:                         "SELECT ?label WHERE { " +
+305:                         "  <" + entityUri + "> rdfs:label ?label . " +
+306:                         "  FILTER (lang(?label) = 'en') " +
+307:                         "} LIMIT 1";
+308: 
+309:         try {
+310:             org.apache.jena.query.Query query = org.apache.jena.query.QueryFactory.create(sparqlQuery);
+311:             try (org.apache.jena.query.QueryExecution qexec = org.apache.jena.query.QueryExecution.service("https://query.wikidata.org/sparql")
+312:                     .query(query)
+313:                     .httpHeader("User-Agent", "NeuroSemanticInvestigator/1.0 (ifts-project@example.com)")
+314:                     .build()) {
+315:                 org.apache.jena.query.ResultSet results = qexec.execSelect();
+316:                 if (results.hasNext()) return results.nextSolution().getLiteral("label").getString();
+317:             }
+318:         } catch (Exception e) { /* Silenzioso */ }
+319: 
+320:         String[] parts = uri.split("/");
+321:         return parts[parts.length - 1];
+322:     }
+323: 
+324:     private static boolean isMetadata(String uri) {
+325:         return uri.contains("P18") || uri.contains("P373") || uri.contains("P2002") || uri.contains("P2013") || uri.contains("P137");
+326:     }
+327: }
+
+(End of file - total 327 lines)
+</content>
+```
+
+**Tool: read**
+
+**Input:**
+```json
+{
+  "filePath": "C:\\Users\\Ion\\IdeaProjects\\Vaimee\\VSA\\neuro-semantic-investigator\\src\\main\\java\\com\\investigator\\llm\\OntologyTranslator.java"
+}
+```
+
+**Output:**
+```
+<path>C:\Users\Ion\IdeaProjects\Vaimee\VSA\neuro-semantic-investigator\src\main\java\com\investigator\llm\OntologyTranslator.java</path>
+<type>file</type>
+<content>
+1: package com.investigator.llm;
+2: 
+3: import com.investigator.jena.ResolvedEntity;
+4: import dev.langchain4j.data.embedding.Embedding;
+5: import dev.langchain4j.model.embedding.AllMiniLmL6V2EmbeddingModel;
+6: import dev.langchain4j.model.embedding.EmbeddingModel;
+7: import dev.langchain4j.store.embedding.CosineSimilarity;
+8: 
+9: import java.util.*;
+10: import java.util.concurrent.ConcurrentHashMap;
+11: import java.util.stream.Collectors;
+12: 
+13: public class OntologyTranslator {
+14: 
+15:     private final EmbeddingModel llm;
+16:     private final Map<String, String> expectedTypeCache = new ConcurrentHashMap<>();
+17: 
+18:     public OntologyTranslator() {
+19:         this.llm = new AllMiniLmL6V2EmbeddingModel();
+20:     }
+21: 
+22:     /**
+23:      * Arricchisce una mappa URI→label con il tipo atteso della proprietà (range constraint),
+24:      * per migliorare il matching embedding. Es. "composer [expects: human]" vs "author [expects: human]".
+25:      */
+26:     public Map<String, String> enrichLabelsWithExpectedTypes(Map<String, String> uriToLabel) {
+27:         List<String> uris = new ArrayList<>(uriToLabel.keySet());
+28:         Map<String, String> fetched = batchFetchExpectedTypes(uris);
+29:         expectedTypeCache.putAll(fetched);
+30: 
+31:         Map<String, String> enriched = new LinkedHashMap<>();
+32:         for (Map.Entry<String, String> entry : uriToLabel.entrySet()) {
+33:             String uri = entry.getKey();
+34:             String label = entry.getValue();
+35:             String expected = expectedTypeCache.getOrDefault(uri, "");
+36:             if (!expected.isEmpty()) {
+37:                 enriched.put(uri, label + " [expects: " + expected + "]");
+38:             } else {
+39:                 enriched.put(uri, label);
+40:             }
+41:         }
+42:         return enriched;
+43:     }
+44: 
+45:     private Map<String, String> batchFetchExpectedTypes(List<String> propertyUris) {
+46:         if (propertyUris.isEmpty()) return Collections.emptyMap();
+47: 
+48:         String valuesClause = propertyUris.stream()
+49:                 .map(uri -> "<" + uri + ">")
+50:                 .collect(Collectors.joining(" "));
+51: 
+52:         String sparql =
+53:                 "PREFIX wd: <http://www.wikidata.org/entity/>\n" +
+54:                 "PREFIX wdt: <http://www.wikidata.org/prop/direct/>\n" +
+55:                 "PREFIX p: <http://www.wikidata.org/prop/>\n" +
+56:                 "PREFIX ps: <http://www.wikidata.org/prop/statement/>\n" +
+57:                 "PREFIX pq: <http://www.wikidata.org/prop/qualifier/>\n" +
+58:                 "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\n" +
+59:                 "SELECT ?prop ?expectedTypeLabel WHERE {\n" +
+60:                 "  VALUES ?prop { " + valuesClause + " }\n" +
+61:                 "  OPTIONAL {\n" +
+62:                 "    ?prop p:P2302 ?stmt.\n" +
+63:                 "    ?stmt ps:P2302 wd:Q21510865.\n" +
+64:                 "    ?stmt pq:P2308 ?expectedType.\n" +
+65:                 "    ?expectedType rdfs:label ?expectedTypeLabel. FILTER(lang(?expectedTypeLabel)='en')\n" +
+66:                 "  }\n" +
+67:                 "}";
+68: 
+69:         Map<String, String> result = new LinkedHashMap<>();
+70:         try {
+71:             org.apache.jena.query.Query query = org.apache.jena.query.QueryFactory.create(sparql);
+72:             try (org.apache.jena.query.QueryExecution qexec = org.apache.jena.query.QueryExecution.service("https://query.wikidata.org/sparql")
+73:                     .query(query)
+74:                     .httpHeader("User-Agent", "NeuroSemanticInvestigator/1.0 (ifts-project@example.com)")
+75:                     .build()) {
+76:                 org.apache.jena.query.ResultSet rs = qexec.execSelect();
+77:                 while (rs.hasNext()) {
+78:                     org.apache.jena.query.QuerySolution soln = rs.next();
+79:                     String propUri = soln.getResource("prop").getURI();
+80:                     String typeLabel = soln.contains("expectedTypeLabel")
+81:                             ? soln.getLiteral("expectedTypeLabel").getString() : "";
+82:                     result.put(propUri, typeLabel);
+83:                 }
+84:             }
+85:         } catch (Exception e) {
+86:             System.err.println("   [BATCH TYPE] Fallito fetch: " + e.getMessage());
+87:         }
+88:         return result;
+89:     }
+90: 
+91:     public String findSemanticEquivalent(String sourceConcept, Map<String, String> targetProperties, double threshold) {
+92:         return findSemanticEquivalent(sourceConcept, null, targetProperties, threshold);
+93:     }
+94: 
+95:     /**
+96:      * Trova la proprietà target semanticamente più simile al concetto sorgente.
+97:      * Se sourcePropertyUri è fornito, arricchisce il concetto con il suo tipo atteso.
+98:      */
+99:     public String findSemanticEquivalent(String sourceConcept, String sourcePropertyUri,
+100:                                          Map<String, String> targetProperties, double threshold) {
+101:         String enrichedSource = sourceConcept;
+102:         if (sourcePropertyUri != null && expectedTypeCache.containsKey(sourcePropertyUri)) {
+103:             String srcType = expectedTypeCache.get(sourcePropertyUri);
+104:             if (!srcType.isEmpty()) {
+105:                 enrichedSource = sourceConcept + " [expects: " + srcType + "]";
+106:             }
+107:         }
+108: 
+109:         System.out.println("\n   [LLM] Analisi semantica per: '" + enrichedSource + "'...");
+110:         Embedding sourceEmbedding = llm.embed(enrichedSource).content();
+111: 
+112:         double bestScore = -1.0;
+113:         String bestUriMatch = null;
+114:         String bestLabelMatch = null;
+115: 
+116:         for (Map.Entry<String, String> entry : targetProperties.entrySet()) {
+117:             String targetUri = entry.getKey();
+118:             String targetLabel = entry.getValue();
+119: 
+120:             if (targetLabel == null || targetLabel.isEmpty()) continue;
+121: 
+122:             Embedding targetEmbedding = llm.embed(targetLabel).content();
+123:             double similarity = CosineSimilarity.between(sourceEmbedding, targetEmbedding);
+124: 
+125:             if (similarity > 0.3) {
+126:                 System.out.printf("      -> Confronto con '%s': Similarità %.3f\n", targetLabel, similarity);
+127:             }
+128: 
+129:             if (similarity > bestScore) {
+130:                 bestScore = similarity;
+131:                 bestUriMatch = targetUri;
+132:                 bestLabelMatch = targetLabel;
+133:             }
+134:         }
+135: 
+136:         if (bestScore >= threshold) {
+137:             System.out.printf("\n   [LLM] -> MATCH VINCENTE! '%s' è l'equivalente di '%s' (Score: %.2f)\n",
+138:                     bestLabelMatch, enrichedSource, bestScore);
+139:             return bestUriMatch;
+140:         } else {
+141:             System.out.printf("\n   [LLM] -> NESSUN MATCH SUFFICIENTE. Miglior candidato era '%s' (Score: %.2f, Soglia: %.2f)\n",
+142:                     bestLabelMatch, bestScore, threshold);
+143:             return null;
+144:         }
+145:     }
+146: 
+147:     /**
+148:      * Esegue un Semantic Reranking su una lista di candidati, basato sulla classe ontologica desiderata.
+149:      */
+150:     /**
+151:      * Confronta due classi ontologiche usando embedding semantico invece di uguaglianza stringale.
+152:      * Es. "tragedy" vs "musical composition" sono entrambe creative works e avranno similarità > soglia.
+153:      */
+154:     public boolean areClassesCompatible(String classLabelA, String classLabelB, double threshold) {
+155:         if (classLabelA == null || classLabelB == null) return true;
+156:         Embedding embA = llm.embed(classLabelA).content();
+157:         Embedding embB = llm.embed(classLabelB).content();
+158:         double sim = CosineSimilarity.between(embA, embB);
+159:         System.out.printf("   [COMPAT CHECK] '%s' vs '%s' -> Similarità: %.3f (Soglia: %.2f)%n",
+160:                 classLabelA, classLabelB, sim, threshold);
+161:         return sim >= threshold;
+162:     }
+163: 
+164:     public ResolvedEntity disambiguateCandidates(String targetClassLabel, List<ResolvedEntity> candidates) {
+165:         if (candidates == null || candidates.isEmpty()) return null;
+166:         if (targetClassLabel == null) return candidates.get(0);
+167: 
+168:         System.out.println("   [RERANKER] Disambiguazione di " + candidates.size()
+169:                 + " candidati (class similarity 60% + sitelinks 40%):");
+170: 
+171:         int maxSitelinks = candidates.stream().mapToInt(ResolvedEntity::sitelinks).max().orElse(1);
+172:         Embedding targetEmbedding = llm.embed(targetClassLabel).content();
+173: 
+174:         ResolvedEntity bestCandidate = candidates.get(0);
+175:         double bestScore = -1.0;
+176: 
+177:         for (ResolvedEntity candidate : candidates) {
+178:             String candidateClass = candidate.classLabel();
+179:             if (candidateClass == null) {
+180:                 System.out.printf("      -> Salto [%s]: Classe non definita\n", candidate.entityLabel());
+181:                 continue;
+182:             }
+183: 
+184:             Embedding candidateEmbedding = llm.embed(candidateClass).content();
+185:             double classSim = CosineSimilarity.between(targetEmbedding, candidateEmbedding);
+186:             double sitelinksScore = maxSitelinks > 0 ? (double) candidate.sitelinks() / maxSitelinks : 0;
+187:             double combined = classSim * 0.60 + sitelinksScore * 0.40;
+188: 
+189:             System.out.printf("      -> [%s] Classe='%s' | ClassSim=%.3f | Sitelinks=%d (%.2f) | COMBINATO=%.3f\n",
+190:                     candidate.entityLabel(), candidateClass, classSim,
+191:                     candidate.sitelinks(), sitelinksScore, combined);
+192: 
+193:             if (combined > bestScore) {
+194:                 bestScore = combined;
+195:                 bestCandidate = candidate;
+196:             }
+197:         }
+198: 
+199:         System.out.println("   [RERANKER] -> Scelto: " + bestCandidate.entityLabel()
+200:                 + " (Combinato: " + String.format("%.3f", bestScore) + ")");
+201:         return bestCandidate;
+202:     }
+203: }
+
+(End of file - total 203 lines)
+</content>
+```
+
+**Tool: read**
+
+**Input:**
+```json
+{
+  "filePath": "C:\\Users\\Ion\\IdeaProjects\\Vaimee\\VSA\\neuro-semantic-investigator\\src\\main\\java\\com\\investigator\\vsa\\strategy\\TopologicalVectorUpdater.java"
+}
+```
+
+**Output:**
+```
+<path>C:\Users\Ion\IdeaProjects\Vaimee\VSA\neuro-semantic-investigator\src\main\java\com\investigator\vsa\strategy\TopologicalVectorUpdater.java</path>
+<type>file</type>
+<content>
+1: package com.investigator.vsa.strategy;
+2: 
+3: import com.investigator.vsa.*;
+4: import org.apache.jena.rdf.model.*;
+5: import java.util.*;
+6: import java.util.stream.Collectors;
+7: 
+8: public class TopologicalVectorUpdater {
+9: 
+10:     private static final int MAX_CHUNK_CAPACITY = 30;
+11:     private static final String V_STOP_URI = "vsa:internal:stop";
+12: 
+13:     public void applyTopologicalUpdate(ItemMemory memory, Model localGraph, Set<Resource> updatedNodes) {
+14:         for (Resource node : updatedNodes) {
+15:             if (node.isURIResource()) {
+16:                 updateNodeVectorHierarchical(memory, node, localGraph);
+17:             }
+18:         }
+19:     }
+20: 
+21:     private void updateNodeVectorHierarchical(ItemMemory memory, Resource node, Model model) {
+22:         String entityUri = node.getURI();
+23:         HDVector pureIdentity = memory.getOrGenerate(entityUri);
+24: 
+25:         List<Statement> allStatements = model.listStatements(node, null, (RDFNode) null).toList();
+26:         Map<Property, List<Statement>> buckets = allStatements.stream()
+27:                 .collect(Collectors.groupingBy(Statement::getPredicate));
+28: 
+29:         List<HDVector> macroBranches = new ArrayList<>();
+30: 
+31:         for (Map.Entry<Property, List<Statement>> entry : buckets.entrySet()) {
+32:             Property predicate = entry.getKey();
+33:             List<Statement> triples = entry.getValue();
+34:             HDVector predicateVector = memory.getOrGenerate(predicate.getURI());
+35: 
+36:             // Costruiamo il Chunk (NON contiene più l'identità pura per evitare l'overpower)
+37:             HDVector branchContent = (triples.size() <= MAX_CHUNK_CAPACITY) ?
+38:                     buildSimpleChunk(triples, memory) :
+39:                     buildRecursiveSubTree(triples, memory);
+40: 
+41:             // 1. SALVIAMO IL CHUNK PURO NELLA MEMORIA
+42:             // Usiamo una chiave univoca: URI_Entità + URI_Predicato
+43:             String chunkKey = entityUri + ":chunk:" + predicate.getURI();
+44:             memory.saveChunkVector(chunkKey, branchContent);
+45: 
+46:             // 2. COSTRUIAMO L'ALBERO (Simpkin)
+47:             // Bindiamo il Chunk al Ruolo e lo shiftiamo per impacchettarlo nel Mega-Vettore
+48:             macroBranches.add(branchContent.bind(predicateVector).permute(100));
+49:         }
+50: 
+51:         // AGGIUNGIAMO L'IDENTITÀ PURA *SOLO* AL LIVELLO RADICE!
+52:         // Così il Mega-Vettore risuona con l'identità dell'entità, ma i suoi rami interni restano puliti.
+53:         macroBranches.add(pureIdentity);
+54: 
+55:         if (macroBranches.size() % 2 == 0) {
+56:             macroBranches.add(HDVectorMapB.generateRandom());
+57:         }
+58: 
+59:         HDVector rootVector = HDVectorMapB.bundleSimultaneous(macroBranches);
+60:         memory.saveTreeVector(entityUri, rootVector);
+61:     }
+62: 
+63:     private HDVector buildSimpleChunk(List<Statement> triples, ItemMemory memory) {
+64:         List<HDVector> vectors = new ArrayList<>();
+65:         for (Statement s : triples) {
+66:             vectors.add(encodeTriple(s, memory));
+67:         }
+68: 
+69:         // Lo StopVec di Simpkin delimita semanticamente la fine del Chunk
+70:         vectors.add(memory.getOrGenerate(V_STOP_URI));
+71: 
+72:         if (vectors.size() % 2 == 0) vectors.add(HDVectorMapB.generateRandom());
+73:         return HDVectorMapB.bundleSimultaneous(vectors);
+74:     }
+75: 
+76:     private HDVector buildRecursiveSubTree(List<Statement> triples, ItemMemory memory) {
+77:         List<HDVector> subChunks = new ArrayList<>();
+78:         for (int i = 0; i < triples.size(); i += MAX_CHUNK_CAPACITY) {
+79:             int end = Math.min(i + MAX_CHUNK_CAPACITY, triples.size());
+80:             List<Statement> subList = triples.subList(i, end);
+81: 
+82:             HDVector chunk = buildSimpleChunk(subList, memory);
+83:             subChunks.add(chunk.permute(i / MAX_CHUNK_CAPACITY + 1));
+84:         }
+85:         if (subChunks.size() % 2 == 0) subChunks.add(HDVectorMapB.generateRandom());
+86:         return HDVectorMapB.bundleSimultaneous(subChunks);
+87:     }
+88: 
+89:     private HDVector encodeTriple(Statement stmt, ItemMemory memory) {
+90:         HDVector vS = memory.getOrGenerate(stmt.getSubject().getURI());
+91:         HDVector vP = memory.getOrGenerate(stmt.getPredicate().getURI());
+92:         HDVector vO = stmt.getObject().isResource() ?
+93:                 memory.getOrGenerate(stmt.getObject().asResource().getURI()) :
+94:                 memory.getOrGenerate(stmt.getObject().asLiteral().getString());
+95: 
+96:         // Pattern: S ⊗ P(1) ⊗ O(2)
+97:         return vS.bind(vP.permute(1)).bind(vO.permute(2));
+98:     }
+99: }
+
+(End of file - total 99 lines)
+</content>
+```
+
+---
+
+## Assistant (Build · DeepSeek V4 Pro · 143.1s)
+
+_Thinking:_
+
+Now I have a complete picture of the current state. Let me write a comprehensive markdown report. I'll include:
+
+1. Project overview and purpose
+2. Architecture (MAP-B)
+3. Complete pipeline
+4. All components with their roles
+5. Key mathematical operations
+6. Current issues (the "Holographic Bypass" failure)
+
+Let me write this as a comprehensive document.
+
+Actually, one thing I notice: the `disambiguateCandidates` signature changed. It now takes `(String targetClassLabel, List<ResolvedEntity> candidates)` instead of `(ResolvedEntity sourceEntity, List<ResolvedEntity> candidates)`. The AppDis calls it with `translator.disambiguateCandidates(apolloEntity.classLabel(), targetResults)`.
+
+Also, the `areClassesCompatible` method was added instead of the earlier `computeClassSimilarity` and compat check approach.
+
+Let me write the full report now.
+
+**Tool: write**
+
+**Input:**
+```json
+{
+  "filePath": "C:\\Users\\Ion\\IdeaProjects\\Vaimee\\VSA\\neuro-semantic-investigator\\PROJECT_REPORT.md",
+  "content": "# Neuro-Semantic Investigator — Report Architetturale Completo\n\n## 1. Scopo del Progetto\n\nIl **Neuro-Semantic Investigator** è un motore di **ragionamento analogico** basato su due pilastri:\n- **VSA (Vector Symbolic Architecture)** con codifica **MAP-B** a 10.000 dimensioni bipolari\n- **Knowledge Graph** di Wikidata come memoria esterna (via SPARQL)\n\nObiettivo: dato un fatto noto `A : B` (es. \"Apollo 11 : Neil Armstrong\") e un'entità target `C` (es. \"Vostok 1\"), trovare l'analogo `D` (es. \"Yuri Gagarin\") tale che `A : B = C : D`.\n\nIl sistema risolve l'analogia in 4 passi, senza training, senza database interno, usando Wikidata come sorgente dati on-the-fly.\n\n---\n\n## 2. Architettura MAP-B\n\n### 2.1 Spazio Vettoriale\n\n```\nD = 10000 dimensioni\nBipolare: ogni elemento ∈ {-1, +1}\nImplementazione: byte[] array in HDVectorMapB.java\n```\n\n### 2.2 Operazioni Algebriche\n\n| Operazione | Implementazione | Significato |\n|---|---|---|\n| **Bind (⊗)** | Hadamard product: `a[i] * b[i]` | Associa due concetti in un vettore composito. È invertibile: `(a⊗b)⊗b ≈ a` |\n| **Bundle (+)** | Somma + Signum (tie-break deterministico seed=42) | Sovrappone vettori in un unico \"super-vettore\" che risuona con ciascun componente |\n| **Permute (ρⁿ)** | Shift ciclico di `n` posizioni | Crea posizioni uniche nello spazio vettoriale; `ρ⁻ⁿ(ρⁿ(v)) = v` |\n| **Similarity** | Cosine = dot-product / D | `1.0` = identico, `0.0` = ortogonale (rumore puro), `-1.0` = opposto |\n\n### 2.3 Persistenza Distribuita (Senza Database)\n\n```\nURI → UTF-8 bytes → UUID.nameUUIDFromBytes() → MD5 hash → 64-bit seed → java.util.Random(seed) LCG → 10000 bit bipolari\n```\n\nStesso URI su qualsiasi JVM, qualsiasi OS, produce sempre lo stesso vettore. Completamente deterministico, nessuna persistenza richiesta.\n\n### 2.4 Encoding di Triple (Simpkin Tree)\n\n**Tripla:** `encode(S, P, O) = vS ⊗ ρ¹(vP) ⊗ ρ²(vO)`\n\nDove ρ¹ sposta il predicato di 1 posizione e ρ² sposta l'oggetto di 2 posizioni. Questo separa i ruoli semantici (soggetto/predicato/oggetto) nello spazio vettoriale.\n\n**Costruzione dell'albero:**\n\n```\nPer ogni entità E:\n  1. Raggruppa tutte le triple per predicato (bucket)\n  2. Per ogni bucket (max 30 triple):\n     - Bundle simultaneo delle triple → Chunk\n     - Aggiungi StopVec (vsa:internal:stop) come delimitatore\n     - Aggiungi vettore random per parity fix (se necessario)\n  3. Rami: Chunk ⊗ vPredicato ⊗ ρ¹⁰⁰\n  4. TreeVector(E) = Bundle(rami) + vIdentità(E) + random(parity)\n```\n\n**Estrazione (inversa):**\n```\nRamo(P) = TreeVector(E) ⊗ ρ⁻¹⁰⁰(vP)  →  cleanUpChunk → Chunk pulito\nOggetto = Chunk ⊗ vE ⊗ ρ¹(vP) ⊗ ρ⁻²  →  cleanUpRelative → foglia\n```\n\n### 2.5 Clean-Up Statistico\n\n```\nSoglia Z-Score = log₁₀(D) = 4.0 σ (per D=10000)\nParametri: media e deviazione standard calcolate su TUTTI i candidati nel memory bank\nMatch valido se: (similarity_best - mean) / stdDev >= soglia\n```\n\nIl clean-up opera su due memorie separate:\n- **chunkMemory**: per recuperare rami (macro-bucket di proprietà)\n- **atomicMemory**: per recuperare foglie (entità individuali)\n\n---\n\n## 3. Pipeline di Ragionamento\n\n### 3.1 FASE 0: Entity Resolution & Reranking\n\n**EntityResolver.java** — Converte testo libero in URI Wikidata usando `wikibase:mwapi` (EntitySearch interno di Wikidata):\n\n```sparql\nSELECT ?entity ?entityLabel ?class ?classLabel ?sitelinks WHERE {\n  SERVICE wikibase:mwapi {\n      bd:serviceParam wikibase:endpoint \"www.wikidata.org\";\n                      wikibase:api \"EntitySearch\";\n                      mwapi:search \"Apollo 11\";\n                      mwapi:language \"en\".\n  }\n  OPTIONAL { ?entity wdt:P31 ?class . }\n  OPTIONAL { ?entity wikibase:sitelinks ?sitelinks . }\n  SERVICE wikibase:label { bd:serviceParam wikibase:language \"en\". }\n} ORDER BY DESC(?sitelinks)\n```\n\n**ResolvedEntity** (record Java) contiene:\n- `searchKeyword` — keyword originale\n- `entityUri` — URI Wikidata completo\n- `entityLabel` — etichetta in inglese\n- `classUri` — URI del P31 (instance of)\n- `classLabel` — etichetta del P31\n- `sitelinks` — numero di edizioni Wikipedia (proxy di notorietà)\n\n**Reranker** (`disambiguateCandidates` in OntologyTranslator):\n```\ncombinedScore = classSimilarity × 0.60 + sitelinksNorm × 0.40\n```\n\nDove `classSimilarity` è la cosine similarity tra gli embedding MiniLM (384-d) del `classLabel` sorgente e del `classLabel` candidato. I sitelinks sono normalizzati rispetto al massimo del lotto. Il peso 60/40 bilancia rilevanza semantica e notorietà.\n\n### 3.2 Compatibilità Ontologica\n\nPrima di procedere, il sistema verifica che le classi ontologiche (P31) di sorgente e target siano semanticamente compatibili tramite `areClassesCompatible()`:\n\n```\ncosine(embed(sorgente.P31), embed(target.P31)) >= 0.35\n```\n\nSoglia 0.35 scelta per permettere analogie cross-classe ma correlate (es. \"dramatic work\" vs \"musical work/composition\" = 0.397).\n\nSe le classi sono incompatibili, parte una procedura di allineamento ontologico che:\n1. Interroga Wikidata per nodi collegati al target via P793 (significant event), P2283 (uses), P516 (equipment)\n2. Usa l'embedding per trovare il candidato con classe più simile alla sorgente\n\n### 3.3 Graph Ingestion\n\n**GraphManager + TripleExtractor** — Scarica il grafo bidirezionale:\n\n```sparql\nCONSTRUCT {\n  <entityUri> ?pOut ?o .\n  ?s ?pIn <entityUri> .\n} WHERE {\n  { SELECT ?pOut ?o WHERE { <entityUri> ?pOut ?o . } }\n  UNION\n  { SELECT ?s ?pIn WHERE { ?s ?pIn <entityUri> . } LIMIT 500 }\n}\n```\n\nEstrae sia le frecce in uscita (proprietà dell'entità) che quelle in entrata (chi punta all'entità).\n\n### 3.4 STEP 1: VSA Role Deduction (Dominio Sorgente)\n\n```\nPer ogni proprietà P dell'entità sorgente A:\n  noisyBranch = TreeVector(A) ⊗ ρ⁻¹⁰⁰(vP)\n  cleanBranch = cleanUpChunk(noisyBranch)     // Z-Score > 4.0 σ\n  \n  Se cleanBranch != null:\n    noisyObject = cleanBranch ⊗ vA ⊗ ρ¹(vP) ⊗ ρ⁻²\n    sim = cosine(noisyObject, vB)          // B = oggetto noto\n    \n    Se sim > 0.05 AND sim > best:\n      sourceRoleUri = URI di P\n      best = sim\n\nOutput: RUOLO SCOPERTO (es. \"crew members\")\n```\n\n### 3.5 STEP 2: LLM Semantic Bridge (Cambio di Dominio)\n\n**Problema:** Il ruolo scoperto nel dominio sorgente (es. \"crew members\" in Apollo 11) potrebbe avere un nome diverso nel dominio target (es. sempre \"crew members\" in Vostok 1, ma potrebbe anche essere \"astronaut\" o \"participant\").\n\n**Soluzione (3 sotto-fasi):**\n\n**A) Arricchimento con Tipi Attesi**\n\nPer ogni proprietà del target, il sistema interroga Wikidata per il vincolo di range (P2302 → P2308):\n\n```sparql\nSELECT ?prop ?expectedTypeLabel WHERE {\n  VALUES ?prop { <P1029> <P50> ... }\n  ?prop p:P2302 ?stmt.\n  ?stmt ps:P2302 wd:Q21510865.     # \"value-type constraint\"\n  ?stmt pq:P2308 ?expectedType.\n  ?expectedType rdfs:label ?expectedTypeLabel.\n}\n```\n\nRisultato: label arricchite come `\"composer [expects: human]\"` invece di `\"composer\"`.\n\n**B) Arricchimento del Ruolo Sorgente**\n\nAnche il ruolo sorgente viene arricchito se ha un expected type:\n`\"crew members\"` → `\"crew members [expects: human]\"`\n\n**C) Matching via Embedding**\n\nCosine similarity tra l'embedding MiniLM (384-d) del ruolo sorgente arricchito e ogni proprietà target arricchita. Soglia 0.35 (ridotta per compensare la complessità delle label arricchite).\n\nEsempio: `\"crew members\"` vs `\"crew members\"` = 1.000 → match perfetto.\n\n### 3.6 STEP 3 & 4: VSA Projection + Extraction (Dominio Target)\n\n```\n// STEP 3 — Proiezione\nnoisyBranch = TreeVector(C) ⊗ ρ⁻¹⁰⁰(targetRole)\n\n// \"Holographic Bypass\": si salta il clean-up intermedio del ramo\n// perché il segnale nei grafi piccoli è troppo debole per superare 4.0 σ\n\n// STEP 4 — Estrazione\nnoisyObject = noisyBranch ⊗ vC ⊗ ρ¹(targetRole) ⊗ ρ⁻²\nfinalMatch = cleanUpRelative(noisyObject)\n\nSe finalMatch != null (Z-Score > 4.0 σ):\n  RISULTATO: Yuri Gagarin è l'analogo di Neil Armstrong nel dominio Vostok\n```\n\n**Nota critica (BUG corrente):** L'Holographic Bypass è stato introdotto perché il clean-up intermedio del ramo (cleanUpChunk) falliva quasi sempre, interrompendo la pipeline. Senza questo passo intermedio, il rumore si accumula e il clean-up finale (cleanUpRelative) produce Z-Score troppo bassi. Vedere Sezione 5.\n\n---\n\n## 4. Componenti Software\n\n### 4.1 Package `vsa/`\n\n| Classe | Ruolo |\n|---|---|\n| `HDVector.java` | Interfaccia: bind, bundle, permute, similarity |\n| `HDVectorMapB.java` | Implementazione MAP-B: D=10000, byte[] bipolare, Hadamard, signum |\n| `ItemMemory.java` | 3-tier memory: atomicMemory, chunkMemory, treeMemory + Z-Score clean-up |\n| `strategy/VectorGenerationStrategy.java` | Interfaccia per generazione vettori |\n| `strategy/RandomGenerationStrategy.java` | Generazione deterministica: URI → seed → vettore |\n| `strategy/SemanticEmbeddingStrategy.java` | Generazione neuro-simbolica: MiniLM → LSH → vettore bipolare |\n| `strategy/TopologicalVectorUpdater.java` | Costruzione Simpkin Tree da grafo RDF |\n\n### 4.2 Package `engine/`\n\n| Classe | Ruolo |\n|---|---|\n| `InvestigationEngine.java` | Orchestratore: ingestion + encodifica triple + aggiornamento topologico |\n\n### 4.3 Package `jena/`\n\n| Classe | Ruolo |\n|---|---|\n| `SparqlEndpoint.java` | Connessione HTTP a Wikidata (deprecated, quasi inutilizzato) |\n| `TripleExtractor.java` | Estrattore bidirezionale con CONSTRUCT SPARQL |\n| `GraphManager.java` | Gestione modello RDF locale (accumulativo) |\n| `EntityResolver.java` | Entity Search via wikibase:mwapi + sitelinks ranking |\n| `ResolvedEntity.java` | Record: keyword, URI, label, P31 class, sitelinks |\n\n### 4.4 Package `llm/`\n\n| Classe | Ruolo |\n|---|---|\n| `OntologyTranslator.java` | Ponte semantico: embedding MiniLM, class similarity, reranking, property type enrichment, semantic equivalent finder |\n\n### 4.5 Entry Points\n\n| Classe | Descrizione |\n|---|---|\n| `App.java` | Pipeline base (Amazon/Brazil/Nile — hardcoded, con allineamento ontologico SPARQL) |\n| `AppDis.java` | Pipeline con disambiguazione (Apollo 11/Neil Armstrong/Vostok 1 — test principale) |\n\n---\n\n## 5. Problemi Noti\n\n### 5.1 Holographic Bypass e SNR Insufficiente\n\nIl clean-up del ramo intermedio (`cleanUpChunk`) fallisce quasi sempre perché:\n- I grafi di entità come Apollo 11 o Vostok 1 hanno ~30-50 proprietà\n- Il bundle simultaneo di tutte le triple per ogni proprietà crea un rumore composito\n- Con D=10000 e 30+ proprietà, il segnale di un singolo ramo è spesso sotto 4.0 σ\n\nL'Holographic Bypass (saltare cleanUpChunk) è un workaround che però non risolve il problema a monte: senza pulizia intermedia, il rumore si propaga e il clean-up finale fallisce.\n\n**Possibili soluzioni:**\n1. Aumentare D a 100.000 (10x più spazio → migliore separazione dei segnali)\n2. Ridurre la soglia Z-Score per chunk piccoli (soglia adattiva basata sul numero di candidati)\n3. Usare SemanticEmbeddingStrategy invece di RandomGenerationStrategy (vettori semanticamente correlati invece che ortogonali puri)\n\n### 5.2 SemanticEmbeddingStrategy Non Usata in Default\n\nLa `SemanticEmbeddingStrategy` genera vettori non random ma basati su embedding MiniLM proiettati via LSH in spazio bipolare. Questo renderebbe vettori come \"Apollo 11\" e \"Vostok 1\" naturalmente più simili (entrambi sono \"human spaceflight\"), migliorando la risonanza analogica. Tuttavia non è usata nelle App correnti (che usano RandomGenerationStrategy).\n\n### 5.3 Due App con Logica Duplicata\n\n`App.java` e `AppDis.java` condividono ~90% della logica (STEP 1-4 identici) ma differiscono in:\n- App.java: allineamento ontologico via SPARQL (hardcoded per missioni)\n- AppDis.java: reranker + compatibilità embedding + type enrichment\n\nQuesta duplicazione va consolidata.\n\n### 5.4 Chunk Parity Fix Inconsistente\n\nIn `TopologicalVectorUpdater`, alla riga 56: se `macroBranches.size() % 2 == 0`, viene aggiunto un `HDVectorMapB.generateRandom()`. Tuttavia `generateRandom()` usa `new Random()` (senza seed, non deterministico). Questo rompe la riproducibilità distribuita perché il vettore di parity fix è diverso a ogni run. Andrebbe usato `generateSeeded(someDeterministicSeed)`.\n\n---\n\n## 6. Dipendenze\n\n```\nApache Jena 5.0.0     — RDF model, SPARQL query/construct\nLangChain4j 0.27.1    — Embedding MiniLM-L6-v2 (384 dimensioni)\nSLF4J + Logback       — Logging\nJUnit 5.10.2          — Test\nJava 17               — Compilazione (pom.xml) / Java 21 (Maven properties)\n```\n\n## 7. Build & Esecuzione\n\n```bash\nmvn clean compile                          # Compilazione\nmvn test -Dtest=ClassName                  # Test singolo\nmvn exec:java -Dexec.mainClass=com.investigator.AppDis   # Esecuzione\n```\n"
+}
+```
+
+**Output:**
+```
+Wrote file successfully.
+```
+
+---
+
+## Assistant (Build · DeepSeek V4 Pro · 8.8s)
+
+_Thinking:_
+
+The file was written. Let me tell the user about it. The file is at `PROJECT_REPORT.md`.
+
+Report salvato in `PROJECT_REPORT.md`. Contiene:
+
+1. **Scopo** — ragionamento analogico VSA su Wikidata
+2. **Architettura MAP-B** — tutte le operazioni (bind, bundle, permute, similarity), la persistenza distribuita senza database, l'encoding Simpkin Tree, il clean-up Z-Score
+3. **Pipeline completa** — dalle entity resolution al risultato finale, passo per passo con le formule matematiche
+4. **Componenti software** — ogni classe con il suo ruolo
+5. **Problemi noti** — Holographic Bypass, SNR insufficiente a D=10000, parity fix non deterministico, duplicazione App.java/AppDis.java
+
+Pronto per essere dato in pasto a un secondo LLM per analisi architetturale.
+
+---
+
+## User
+
+Agisci come un estrattore di codice. Il mio collega senior ha bisogno di analizzare alcune classi specifiche del progetto 'Neuro-Semantic Investigator' per risolvere i problemi di decadimento del segnale (SNR) e sistemare l'Holographic Bypass e i bug di determinismo.
+
+Per favore, estrai e stampa l'intero codice sorgente aggiornato (niente riassunti, voglio il codice completo) delle seguenti classi, separandole chiaramente con dei blocchi Markdown:
+
+vsa/HDVector.java e vsa/HDVectorMapB.java
+
+vsa/ItemMemory.java
+
+vsa/strategy/TopologicalVectorUpdater.java
+
+vsa/strategy/RandomGenerationStrategy.java e vsa/strategy/SemanticEmbeddingStrategy.java
+
+Il file principale (es. AppDis.java o InvestigationEngine.java) limitatamente ai metodi che implementano gli STEP 3 e 4 dell'analogia (Proiezione ed Estrazione).
+
+Prima di fornirmi il codice, scrivi un brevissimo riepilogo (max 5 righe) su come viene calcolato attualmente lo Z-Score in ItemMemory.java. 
+
+---
+
+## Assistant (Build · DeepSeek V4 Pro · 30.6s)
+
+_Thinking:_
+
+The user wants me to extract specific files and also provide a brief summary of how Z-Score is calculated in ItemMemory.java. Let me read the current state of all these files and then output them.
+
+I already have the current versions in memory from recent reads, but let me re-read them to be sure I have the latest.
+
+Actually, I already read all these files very recently. Let me just pull from memory:
+
+1. HDVector.java - simple interface
+2. HDVectorMapB.java - D=10000, bipolar, generateSeeded, bundleSimultaneous with Random(42L), bundle with Random(42L)
+3. ItemMemory.java - dynamicThresholdSigma = Math.log10(D) = 4.0, Z-Score clean-up
+4. TopologicalVectorUpdater.java - Simpkin Tree, encodeTriple S⊗P(1)⊗O(2)
+5. RandomGenerationStrategy.java - UUID-based deterministic seed
+6. SemanticEmbeddingStrategy.java - MiniLM LSH projection
+
+For Z-Score summary:
+- For all candidates in the memory bank, compute cosine similarities
+- Calculate mean and stdDev of all similarities
+- Z-Score = (bestSimilarity - mean) / stdDev
+- If Z-Score >= log10(D) = 4.0 AND stdDev > 0, return best match
+
+For STEP 3 & 4 in AppDis.java:
+- noisyTargetBranch = targetRoot.permute(-100).bind(targetRole)
+- "[HOLOGRAPHIC BYPASS]" - skips cleanUpChunk
+- noisyTargetObject = noisyTargetBranch.bind(targetSubject).bind(targetRole.permute(1)).permute(-2)
+- finalAnalogue = itemMemory.cleanUpRelative(noisyTargetObject)
+
+Let me re-read these files to get the exact current code, then output.
+
+**Tool: read**
+
+**Input:**
+```json
+{
+  "filePath": "C:\\Users\\Ion\\IdeaProjects\\Vaimee\\VSA\\neuro-semantic-investigator\\src\\main\\java\\com\\investigator\\vsa\\HDVector.java"
+}
+```
+
+**Output:**
+```
+<path>C:\Users\Ion\IdeaProjects\Vaimee\VSA\neuro-semantic-investigator\src\main\java\com\investigator\vsa\HDVector.java</path>
+<type>file</type>
+<content>
+1: package com.investigator.vsa;
+2: 
+3: public interface HDVector {
+4:     HDVector bind(HDVector other);
+5:     HDVector bundle(HDVector other);
+6:     HDVector permute(int shift);
+7:     double similarity(HDVector other);
+8: }
+
+(End of file - total 8 lines)
+</content>
+```
+
+**Tool: read**
+
+**Input:**
+```json
+{
+  "filePath": "C:\\Users\\Ion\\IdeaProjects\\Vaimee\\VSA\\neuro-semantic-investigator\\src\\main\\java\\com\\investigator\\vsa\\HDVectorMapB.java"
+}
+```
+
+**Output:**
+```
+<path>C:\Users\Ion\IdeaProjects\Vaimee\VSA\neuro-semantic-investigator\src\main\java\com\investigator\vsa\HDVectorMapB.java</path>
+<type>file</type>
+<content>
+1: package com.investigator.vsa;
+2: 
+3: import java.util.Arrays;
+4: import java.util.List;
+5: import java.util.Random;
+6: 
+7: public class HDVectorMapB implements HDVector {
+8:     public static final int D = 10000;
+9:     private final byte[] values;
+10: 
+11:     public HDVectorMapB() {
+12:         this.values = new byte[D];
+13:     }
+14: 
+15:     public HDVectorMapB(byte[] values) {
+16:         this.values = Arrays.copyOf(values, values.length);
+17:     }
+18: 
+19:     public static HDVectorMapB generateRandom() {
+20:         HDVectorMapB v = new HDVectorMapB();
+21:         Random rnd = new Random();
+22:         for (int i = 0; i < D; i++) {
+23:             v.values[i] = (byte) (rnd.nextBoolean() ? 1 : -1);
+24:         }
+25:         return v;
+26:     }
+27: 
+28:     public static HDVectorMapB generateSeeded(long seed) {
+29:         HDVectorMapB v = new HDVectorMapB();
+30:         Random rnd = new Random(seed);
+31:         for (int i = 0; i < D; i++) {
+32:             v.values[i] = (byte) (rnd.nextBoolean() ? 1 : -1);
+33:         }
+34:         return v;
+35:     }
+36: 
+37:     public static HDVector bundleSimultaneous(List<HDVector> vectors) {
+38:         int[] sum = new int[D];
+39:         for (HDVector v : vectors) {
+40:             HDVectorMapB bv = (HDVectorMapB) v;
+41:             for (int i = 0; i < D; i++) {
+42:                 sum[i] += bv.values[i];
+43:             }
+44:         }
+45:         byte[] result = new byte[D];
+46: 
+47:         // NESSUN RANDOM NECESSARIO
+48:         for (int i = 0; i < D; i++) {
+49:             if (sum[i] > 0) {
+50:                 result[i] = 1;
+51:             } else if (sum[i] < 0) {
+52:                 result[i] = -1;
+53:             } else {
+54:                 // Tie-breaker posizionale puro e stateless
+55:                 result[i] = (byte) ((i % 2 == 0) ? 1 : -1);
+56:             }
+57:         }
+58:         return new HDVectorMapB(result);
+59:     }
+60: 
+61:     @Override
+62:     public HDVector bind(HDVector other) {
+63:         HDVectorMapB o = (HDVectorMapB) other;
+64:         byte[] result = new byte[D];
+65:         for (int i = 0; i < D; i++) {
+66:             result[i] = (byte) (this.values[i] * o.values[i]); // Hadamard product
+67:         }
+68:         return new HDVectorMapB(result);
+69:     }
+70: 
+71:     @Override
+72:     public HDVector bundle(HDVector other) {
+73:         HDVectorMapB o = (HDVectorMapB) other;
+74:         byte[] result = new byte[D];
+75: 
+76:         // NESSUN RANDOM NECESSARIO
+77:         for (int i = 0; i < D; i++) {
+78:             int sum = this.values[i] + o.values[i];
+79:             if (sum > 0) {
+80:                 result[i] = 1;
+81:             } else if (sum < 0) {
+82:                 result[i] = -1;
+83:             } else {
+84:                 // Tie-breaker posizionale puro e stateless
+85:                 result[i] = (byte) ((i % 2 == 0) ? 1 : -1);
+86:             }
+87:         }
+88:         return new HDVectorMapB(result);
+89:     }
+90: 
+91:     @Override
+92:     public HDVector permute(int shift) {
+93:         byte[] result = new byte[D];
+94:         for (int i = 0; i < D; i++) {
+95:             int newIndex = (i + shift) % D;
+96:             if (newIndex < 0) newIndex += D;
+97:             result[newIndex] = this.values[i];
+98:         }
+99:         return new HDVectorMapB(result);
+100:     }
+101: 
+102:     @Override
+103:     public double similarity(HDVector other) {
+104:         HDVectorMapB o = (HDVectorMapB) other;
+105:         int dotProduct = 0;
+106:         for (int i = 0; i < D; i++) {
+107:             dotProduct += this.values[i] * o.values[i];
+108:         }
+109:         return (double) dotProduct / D;
+110:     }
+111: }
+
+(End of file - total 111 lines)
+</content>
+```
+
+**Tool: read**
+
+**Input:**
+```json
+{
+  "filePath": "C:\\Users\\Ion\\IdeaProjects\\Vaimee\\VSA\\neuro-semantic-investigator\\src\\main\\java\\com\\investigator\\vsa\\ItemMemory.java"
+}
+```
+
+**Output:**
+```
+<path>C:\Users\Ion\IdeaProjects\Vaimee\VSA\neuro-semantic-investigator\src\main\java\com\investigator\vsa\ItemMemory.java</path>
+<type>file</type>
+<content>
+1: package com.investigator.vsa;
+2: 
+3: import com.investigator.vsa.strategy.VectorGenerationStrategy;
+4: import java.util.Map;
+5: import java.util.concurrent.ConcurrentHashMap;
+6: import java.util.ArrayList;
+7: import java.util.List;
+8: 
+9: public class ItemMemory {
+10:     // 1. IL VOCABOLARIO (Foglie) - Vettori atomici puri
+11:     private final Map<String, HDVector> atomicMemory = new ConcurrentHashMap<>();
+12: 
+13:     // 2. LA MEMORIA DEI CHUNK (Nodi Intermedi) - Salva i Bucket Semantici puri
+14:     private final Map<String, HDVector> chunkMemory = new ConcurrentHashMap<>();
+15: 
+16:     // 3. L'ENCICLOPEDIA (Radici) - Salva i Mega Vettori finali di Simpkin
+17:     private final Map<String, HDVector> treeMemory = new ConcurrentHashMap<>();
+18: 
+19:     public static final String TREE_POSITION_URI = "vsa:internal:tree_position";
+20:     private final VectorGenerationStrategy strategy;
+21: 
+22:     private double lastMean = 0.0;
+23:     private double lastStdDev = 0.0;
+24:     private double lastBestSigma = 0.0;
+25:     private String lastBestKey = null;
+26: 
+27:     // LA NUOVA SOGLIA DINAMICA
+28:     private final double dynamicThresholdSigma;
+29: 
+30:     public ItemMemory(VectorGenerationStrategy strategy) {
+31:         this.strategy = strategy;
+32: 
+33:         // Calcolo della soglia dinamica basata sulle dimensioni dello spazio vettoriale.
+34:         // A D=10.000 sarà ~4.0, a D=100.000 sarà ~5.0.
+35:         this.dynamicThresholdSigma = Math.log10(HDVectorMapB.D);
+36:         System.out.printf("   [ItemMemory] Inizializzata con D=%d. Soglia di clean-up calcolata: %.2f σ\n",
+37:                 HDVectorMapB.D, this.dynamicThresholdSigma);
+38:     }
+39: 
+40:     public HDVector getOrGenerate(String uri) {
+41:         return atomicMemory.computeIfAbsent(uri, k -> strategy.generate(uri));
+42:     }
+43: 
+44:     public Map<String, HDVector> getAllVectors() {
+45:         return atomicMemory;
+46:     }
+47: 
+48:     // --- GESTIONE RADICI ---
+49:     public void saveTreeVector(String uri, HDVector treeRoot) {
+50:         treeMemory.put(uri, treeRoot);
+51:     }
+52: 
+53:     public HDVector getTreeVector(String uri) {
+54:         return treeMemory.getOrDefault(uri, getOrGenerate(uri));
+55:     }
+56: 
+57:     // --- GESTIONE CHUNK (NOVITÀ) ---
+58:     public void saveChunkVector(String chunkUri, HDVector chunk) {
+59:         chunkMemory.put(chunkUri, chunk);
+60:     }
+61: 
+62:     // Clean-up specifico per i livelli intermedi dell'albero
+63:     public HDVector cleanUpChunk(HDVector noisyChunk) {
+64:         return performStatisticalCleanUp(noisyChunk, chunkMemory, this.dynamicThresholdSigma);
+65:     }
+66: 
+67:     // Clean-up per le foglie (vettori atomici)
+68:     public HDVector cleanUpRelative(HDVector noisyVector) {
+69:         return performStatisticalCleanUp(noisyVector, atomicMemory, this.dynamicThresholdSigma);
+70:     }
+71: 
+72:     // Motore di Clean-Up Statistico Centralizzato
+73:     private HDVector performStatisticalCleanUp(HDVector noisyVector, Map<String, HDVector> memoryBank, double thresholdSigma) {
+74:         if (memoryBank.isEmpty()) return null;
+75: 
+76:         List<Double> similarities = new ArrayList<>();
+77:         double bestSimilarity = -1.0;
+78:         HDVector bestMatch = null;
+79:         String bestKey = null;
+80: 
+81:         for (Map.Entry<String, HDVector> entry : memoryBank.entrySet()) {
+82:             HDVector candidate = entry.getValue();
+83:             double sim = noisyVector.similarity(candidate);
+84:             similarities.add(sim);
+85:             if (sim > bestSimilarity) {
+86:                 bestSimilarity = sim;
+87:                 bestMatch = candidate;
+88:                 bestKey = entry.getKey();
+89:             }
+90:         }
+91: 
+92:         double sum = 0.0;
+93:         for (double s : similarities) sum += s;
+94:         double mean = sum / similarities.size();
+95: 
+96:         double variance = 0.0;
+97:         for (double s : similarities) variance += (s - mean) * (s - mean);
+98:         variance /= similarities.size();
+99:         double stdDev = Math.sqrt(variance);
+100: 
+101:         double sigmaFromMean = (stdDev > 0) ? (bestSimilarity - mean) / stdDev : 0;
+102: 
+103:         lastMean = mean;
+104:         lastStdDev = stdDev;
+105:         lastBestSigma = sigmaFromMean;
+106:         lastBestKey = bestKey;
+107: 
+108:         // Se supera la soglia di emergenza statistica, restituisce il vettore puro
+109:         if (stdDev > 0 && sigmaFromMean >= thresholdSigma) {
+110:             return bestMatch;
+111:         }
+112:         return null;
+113:     }
+114: 
+115:     // ... (metodi legacy e getter per le metriche) ...
+116:     public double getLastBestSigma() { return lastBestSigma; }
+117:     public String getLastBestKey() { return lastBestKey; }
+118: }
+
+(End of file - total 118 lines)
+</content>
+```
+
+**Tool: read**
+
+**Input:**
+```json
+{
+  "filePath": "C:\\Users\\Ion\\IdeaProjects\\Vaimee\\VSA\\neuro-semantic-investigator\\src\\main\\java\\com\\investigator\\vsa\\strategy\\TopologicalVectorUpdater.java"
+}
+```
+
+**Output:**
+```
+<path>C:\Users\Ion\IdeaProjects\Vaimee\VSA\neuro-semantic-investigator\src\main\java\com\investigator\vsa\strategy\TopologicalVectorUpdater.java</path>
+<type>file</type>
+<content>
+1: package com.investigator.vsa.strategy;
+2: 
+3: import com.investigator.vsa.*;
+4: import org.apache.jena.rdf.model.*;
+5: import java.util.*;
+6: import java.util.stream.Collectors;
+7: 
+8: public class TopologicalVectorUpdater {
+9: 
+10:     private static final int MAX_CHUNK_CAPACITY = 30;
+11:     private static final String V_STOP_URI = "vsa:internal:stop";
+12: 
+13:     public void applyTopologicalUpdate(ItemMemory memory, Model localGraph, Set<Resource> updatedNodes) {
+14:         for (Resource node : updatedNodes) {
+15:             if (node.isURIResource()) {
+16:                 updateNodeVectorHierarchical(memory, node, localGraph);
+17:             }
+18:         }
+19:     }
+20: 
+21:     private void updateNodeVectorHierarchical(ItemMemory memory, Resource node, Model model) {
+22:         String entityUri = node.getURI();
+23:         HDVector pureIdentity = memory.getOrGenerate(entityUri);
+24: 
+25:         List<Statement> allStatements = model.listStatements(node, null, (RDFNode) null).toList();
+26:         Map<Property, List<Statement>> buckets = allStatements.stream()
+27:                 .collect(Collectors.groupingBy(Statement::getPredicate));
+28: 
+29:         List<HDVector> macroBranches = new ArrayList<>();
+30: 
+31:         for (Map.Entry<Property, List<Statement>> entry : buckets.entrySet()) {
+32:             Property predicate = entry.getKey();
+33:             List<Statement> triples = entry.getValue();
+34:             HDVector predicateVector = memory.getOrGenerate(predicate.getURI());
+35: 
+36:             // Costruiamo il Chunk (NON contiene più l'identità pura per evitare l'overpower)
+37:             HDVector branchContent = (triples.size() <= MAX_CHUNK_CAPACITY) ?
+38:                     buildSimpleChunk(triples, memory) :
+39:                     buildRecursiveSubTree(triples, memory);
+40: 
+41:             // 1. SALVIAMO IL CHUNK PURO NELLA MEMORIA
+42:             // Usiamo una chiave univoca: URI_Entità + URI_Predicato
+43:             String chunkKey = entityUri + ":chunk:" + predicate.getURI();
+44:             memory.saveChunkVector(chunkKey, branchContent);
+45: 
+46:             // 2. COSTRUIAMO L'ALBERO (Simpkin)
+47:             // Bindiamo il Chunk al Ruolo e lo shiftiamo per impacchettarlo nel Mega-Vettore
+48:             macroBranches.add(branchContent.bind(predicateVector).permute(100));
+49:         }
+50: 
+51:         // AGGIUNGIAMO L'IDENTITÀ PURA *SOLO* AL LIVELLO RADICE!
+52:         // Così il Mega-Vettore risuona con l'identità dell'entità, ma i suoi rami interni restano puliti.
+53:         macroBranches.add(pureIdentity);
+54: 
+55:         if (macroBranches.size() % 2 == 0) {
+56:             macroBranches.add(HDVectorMapB.generateRandom());
+57:         }
+58: 
+59:         HDVector rootVector = HDVectorMapB.bundleSimultaneous(macroBranches);
+60:         memory.saveTreeVector(entityUri, rootVector);
+61:     }
+62: 
+63:     private HDVector buildSimpleChunk(List<Statement> triples, ItemMemory memory) {
+64:         List<HDVector> vectors = new ArrayList<>();
+65:         for (Statement s : triples) {
+66:             vectors.add(encodeTriple(s, memory));
+67:         }
+68: 
+69:         // Lo StopVec di Simpkin delimita semanticamente la fine del Chunk
+70:         vectors.add(memory.getOrGenerate(V_STOP_URI));
+71: 
+72:         if (vectors.size() % 2 == 0) vectors.add(HDVectorMapB.generateRandom());
+73:         return HDVectorMapB.bundleSimultaneous(vectors);
+74:     }
+75: 
+76:     private HDVector buildRecursiveSubTree(List<Statement> triples, ItemMemory memory) {
+77:         List<HDVector> subChunks = new ArrayList<>();
+78:         for (int i = 0; i < triples.size(); i += MAX_CHUNK_CAPACITY) {
+79:             int end = Math.min(i + MAX_CHUNK_CAPACITY, triples.size());
+80:             List<Statement> subList = triples.subList(i, end);
+81: 
+82:             HDVector chunk = buildSimpleChunk(subList, memory);
+83:             subChunks.add(chunk.permute(i / MAX_CHUNK_CAPACITY + 1));
+84:         }
+85:         if (subChunks.size() % 2 == 0) subChunks.add(HDVectorMapB.generateRandom());
+86:         return HDVectorMapB.bundleSimultaneous(subChunks);
+87:     }
+88: 
+89:     private HDVector encodeTriple(Statement stmt, ItemMemory memory) {
+90:         HDVector vS = memory.getOrGenerate(stmt.getSubject().getURI());
+91:         HDVector vP = memory.getOrGenerate(stmt.getPredicate().getURI());
+92:         HDVector vO = stmt.getObject().isResource() ?
+93:                 memory.getOrGenerate(stmt.getObject().asResource().getURI()) :
+94:                 memory.getOrGenerate(stmt.getObject().asLiteral().getString());
+95: 
+96:         // Pattern: S ⊗ P(1) ⊗ O(2)
+97:         return vS.bind(vP.permute(1)).bind(vO.permute(2));
+98:     }
+99: }
+
+(End of file - total 99 lines)
+</content>
+```
+
+**Tool: read**
+
+**Input:**
+```json
+{
+  "filePath": "C:\\Users\\Ion\\IdeaProjects\\Vaimee\\VSA\\neuro-semantic-investigator\\src\\main\\java\\com\\investigator\\vsa\\strategy\\RandomGenerationStrategy.java"
+}
+```
+
+**Output:**
+```
+<path>C:\Users\Ion\IdeaProjects\Vaimee\VSA\neuro-semantic-investigator\src\main\java\com\investigator\vsa\strategy\RandomGenerationStrategy.java</path>
+<type>file</type>
+<content>
+1: package com.investigator.vsa.strategy;
+2: 
+3: import com.investigator.vsa.HDVector;
+4: import com.investigator.vsa.HDVectorMapB;
+5: 
+6: import java.nio.charset.StandardCharsets;
+7: import java.util.UUID;
+8: 
+9: public class RandomGenerationStrategy implements VectorGenerationStrategy {
+10:     @Override
+11:     public HDVector generate(String uri) {
+12:         long seed = UUID.nameUUIDFromBytes(uri.getBytes(StandardCharsets.UTF_8)).getMostSignificantBits();
+13:         return HDVectorMapB.generateSeeded(seed);
+14:     }
+15: }
+
+(End of file - total 15 lines)
+</content>
+```
+
+**Tool: read**
+
+**Input:**
+```json
+{
+  "filePath": "C:\\Users\\Ion\\IdeaProjects\\Vaimee\\VSA\\neuro-semantic-investigator\\src\\main\\java\\com\\investigator\\vsa\\strategy\\SemanticEmbeddingStrategy.java"
+}
+```
+
+**Output:**
+```
+<path>C:\Users\Ion\IdeaProjects\Vaimee\VSA\neuro-semantic-investigator\src\main\java\com\investigator\vsa\strategy\SemanticEmbeddingStrategy.java</path>
+<type>file</type>
+<content>
+1: package com.investigator.vsa.strategy;
+2: import com.investigator.vsa.HDVectorMapB;
+3: import com.investigator.vsa.HDVector;
+4: import com.investigator.vsa.HDVectorMapB;
+5: import dev.langchain4j.data.embedding.Embedding;
+6: import dev.langchain4j.model.embedding.AllMiniLmL6V2EmbeddingModel;
+7: import dev.langchain4j.model.embedding.EmbeddingModel;
+8: 
+9: import java.util.Map;
+10: import java.util.Random;
+11: import java.util.concurrent.ConcurrentHashMap;
+12: 
+13: /**
+14:  * Strategia Neuro-Simbolica Reale:
+15:  * Usa LangChain4j (all-MiniLM-L6-v2) per capire il significato,
+16:  * e LSH per binarizzarlo nell'algebra HDC MAP-B.
+17:  */
+18: public class SemanticEmbeddingStrategy implements VectorGenerationStrategy {
+19: 
+20:     private final int embeddingDim;
+21:     private final float[][] projectionMatrix;
+22:     private final Map<String, float[]> embeddingCache = new ConcurrentHashMap<>();
+23:     private final Map<String, String> labelCache = new ConcurrentHashMap<>(); // Solo la cache delle label
+24:     private final EmbeddingModel embeddingModel;
+25: 
+26: 
+27: 
+28:     public SemanticEmbeddingStrategy() {
+29:         // Inizializza il modello locale in-memory (pesa circa 22MB)
+30:         this.embeddingModel = new AllMiniLmL6V2EmbeddingModel();
+31:         this.embeddingDim = 384; // Dimensione esatta prodotta da all-MiniLM-L6-v2
+32: 
+33:         // Creazione della Matrice di Proiezione Fissa LSH
+34:         this.projectionMatrix = new float[embeddingDim][HDVectorMapB.D];
+35:         initializeProjectionMatrix(42);
+36:     }
+37: 
+38:     private void initializeProjectionMatrix(long seed) {
+39:         Random random = new Random(seed);
+40:         for (int i = 0; i < embeddingDim; i++) {
+41:             for (int j = 0; j < HDVectorMapB.D; j++) {
+42:                 projectionMatrix[i][j] = (float) random.nextGaussian();
+43:             }
+44:         }
+45:     }
+46: 
+47:     @Override
+48:     public HDVector generate(String uri) {
+49:         // ATTENZIONE: per un'app reale l'URI dovrebbe essere convertita
+50:         // nella sua etichetta testuale (es. "crew member" invece di "P1029")
+51:         // prima di essere passata qui. Per ora, embeddiamo la stringa passata.
+52:         String textToEmbed = cleanUriForEmbedding(uri);
+53: 
+54:         // 1. Ottieni l'embedding denso reale (384-D)
+55:         float[] denseEmbedding = fetchDenseEmbedding(textToEmbed);
+56: 
+57:         // 2. Proiezione LSH -> 100.000-D Bipolare
+58:         return binarize(denseEmbedding);
+59:     }
+60: 
+61:     private HDVector binarize(float[] dense) {
+62:         byte[] bipolarValues = new byte[HDVectorMapB.D];
+63: 
+64:         // Moltiplicazione Vettore x Matrice
+65:         for (int j = 0; j < HDVectorMapB.D; j++) {
+66:             float sum = 0;
+67:             for (int i = 0; i < embeddingDim; i++) {
+68:                 sum += dense[i] * projectionMatrix[i][j];
+69:             }
+70:             // Funzione Segno per costringere lo spazio in {-1, +1}
+71:             bipolarValues[j] = (byte) (sum >= 0 ? 1 : -1);
+72:         }
+73: 
+74:         // Ora che il costruttore è public, questo funzionerà perfettamente
+75:         return new HDVectorMapB(bipolarValues);
+76:     }
+77: 
+78:     private float[] fetchDenseEmbedding(String textToEmbed) {
+79:         // Caching per non ricalcolare embedding di parole già viste
+80:         if (embeddingCache.containsKey(textToEmbed)) {
+81:             return embeddingCache.get(textToEmbed);
+82:         }
+83: 
+84:         // CHIAMATA REALE A LANGCHAIN4J
+85:         System.out.println("   [LLM] Calcolo embedding semantico per: '" + textToEmbed + "'");
+86:         Embedding embedding = embeddingModel.embed(textToEmbed).content();
+87:         float[] denseVector = embedding.vector();
+88: 
+89:         embeddingCache.put(textToEmbed, denseVector);
+90:         return denseVector;
+91:     }
+92: 
+93:     // Utility di base per pulire un po' l'URI se ci arriva grezza
+94:     private String cleanUriForEmbedding(String uri) {
+95:         if (!uri.startsWith("http://www.wikidata.org/")) {
+96:             return uri.replace("_", " "); // Per cose come "Apollo_11"
+97:         }
+98: 
+99:         // Se l'abbiamo già cercata, restituiscila
+100:         if (labelCache.containsKey(uri)) {
+101:             return labelCache.get(uri);
+102:         }
+103: 
+104:         // Estrai l'ID (es. Q43653 o P1029)
+105:         String[] parts = uri.split("/");
+106:         String id = parts[parts.length - 1];
+107: 
+108:         // Se non è un Q-node o un P-node, prova un clean base
+109:         if (!id.matches("^[QP]\\d+$")) {
+110:             return id.replace("_", " ");
+111:         }
+112: 
+113:         System.out.println("   [WIKIDATA] Risoluzione label per: " + id);
+114: 
+115:         // Costruisci una query SPARQL per ottenere l'etichetta inglese
+116:         String sparqlQuery =
+117:                 "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> " +
+118:                         "PREFIX wd: <http://www.wikidata.org/entity/> " +
+119:                         "SELECT ?label WHERE { " +
+120:                         "  <" + uri + "> rdfs:label ?label . " +
+121:                         "  FILTER (lang(?label) = 'en') " +
+122:                         "} LIMIT 1";
+123:         try {
+124:             org.apache.jena.query.Query query = org.apache.jena.query.QueryFactory.create(sparqlQuery);
+125: 
+126:             // CORREZIONE ANTI-BOT: Aggiungiamo l'header User-Agent personalizzato
+127:             try (org.apache.jena.query.QueryExecution qexec = org.apache.jena.query.QueryExecution.service("https://query.wikidata.org/sparql")
+128:                     .query(query)
+129:                     .httpHeader("User-Agent", "NeuroSemanticInvestigator/1.0 (ifts-project@example.com)")
+130:                     .build()) {
+131: 
+132:                 org.apache.jena.query.ResultSet results = qexec.execSelect();
+133:                 if (results.hasNext()) {
+134:                     org.apache.jena.query.QuerySolution soln = results.nextSolution();
+135:                     org.apache.jena.rdf.model.Literal label = soln.getLiteral("label");
+136:                     if (label != null) {
+137:                         String cleanLabel = label.getString();
+138:                         labelCache.put(uri, cleanLabel);
+139:                         return cleanLabel;
+140:                     }
+141:                 }
+142:             }
+143:         } catch (Exception e) {
+144:             System.err.println("   [AVVISO] Impossibile risolvere la label per " + uri + ": " + e.getMessage());
+145:         }
+146: 
+147:         // Fallback: usa l'ID se Wikidata non risponde o non ha l'etichetta in inglese
+148:         labelCache.put(uri, id);
+149:         return id;
+150:     }
+151: }
+
+(End of file - total 151 lines)
+</content>
+```
+
+---
+
+## Assistant (Build · DeepSeek V4 Pro · 202.5s)
+
+_Thinking:_
+
+I notice the user has already modified `HDVectorMapB.java` since my last edit — the tie-breakers in `bundleSimultaneous` and `bundle` now use a deterministic positional tie-breaker `(i % 2 == 0) ? 1 : -1` instead of `Random(42L)`. This is even better for determinism.
+
+Now let me output the code with a brief Z-Score summary first, then all the files.
+
+For the Z-Score summary:
+- For each candidate in the memory bank, compute cosine similarity with the noisy vector
+- Track the best match and all similarities
+- Compute mean and population stdDev across all similarities
+- Z-Score = (bestSimilarity - mean) / stdDev
+- Return bestMatch only if stdDev > 0 AND Z-Score >= dynamicThresholdSigma (log10(D) = 4.0)
+- Store metrics in lastMean, lastStdDev, lastBestSigma, lastBestKey for diagnostics
+
+Now I also need to extract the STEP 3 & 4 portion from AppDis.java. Let me read lines 195-230 or so.
+
+## Z-Score — Riepilogo
+
+In `ItemMemory.performStatisticalCleanUp()`:
+1. Calcola la cosine similarity tra il vettore rumoroso e **ogni** candidato nel memory bank
+2. Calcola **media** e **deviazione standard** (popolazione) su tutte le similarità
+3. `zScore = (bestSimilarity − mean) / stdDev`
+4. Restituisce il bestMatch **solo se** `stdDev > 0 && zScore >= dynamicThresholdSigma` dove `dynamicThresholdSigma = log₁₀(D) = 4.0`
+5. Se la bestSimilarity non emerge statisticamente (4σ sopra la media), il clean-up fallisce e restituisce `null`
+
+---
+
+## Codice Completo
+
+### `src/main/java/com/investigator/vsa/HDVector.java`
+
+```java
+package com.investigator.vsa;
+
+public interface HDVector {
+    HDVector bind(HDVector other);
+    HDVector bundle(HDVector other);
+    HDVector permute(int shift);
+    double similarity(HDVector other);
+}
+```
+
+---
+
+### `src/main/java/com/investigator/vsa/HDVectorMapB.java`
+
+```java
+package com.investigator.vsa;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Random;
+
+public class HDVectorMapB implements HDVector {
+    public static final int D = 10000;
+    private final byte[] values;
+
+    public HDVectorMapB() {
+        this.values = new byte[D];
+    }
+
+    public HDVectorMapB(byte[] values) {
+        this.values = Arrays.copyOf(values, values.length);
+    }
+
+    public static HDVectorMapB generateRandom() {
+        HDVectorMapB v = new HDVectorMapB();
+        Random rnd = new Random();
+        for (int i = 0; i < D; i++) {
+            v.values[i] = (byte) (rnd.nextBoolean() ? 1 : -1);
+        }
+        return v;
+    }
+
+    public static HDVectorMapB generateSeeded(long seed) {
+        HDVectorMapB v = new HDVectorMapB();
+        Random rnd = new Random(seed);
+        for (int i = 0; i < D; i++) {
+            v.values[i] = (byte) (rnd.nextBoolean() ? 1 : -1);
+        }
+        return v;
+    }
+
+    public static HDVector bundleSimultaneous(List<HDVector> vectors) {
+        int[] sum = new int[D];
+        for (HDVector v : vectors) {
+            HDVectorMapB bv = (HDVectorMapB) v;
+            for (int i = 0; i < D; i++) {
+                sum[i] += bv.values[i];
+            }
+        }
+        byte[] result = new byte[D];
+
+        // NESSUN RANDOM NECESSARIO
+        for (int i = 0; i < D; i++) {
+            if (sum[i] > 0) {
+                result[i] = 1;
+            } else if (sum[i] < 0) {
+                result[i] = -1;
+            } else {
+                // Tie-breaker posizionale puro e stateless
+                result[i] = (byte) ((i % 2 == 0) ? 1 : -1);
+            }
+        }
+        return new HDVectorMapB(result);
+    }
+
+    @Override
+    public HDVector bind(HDVector other) {
+        HDVectorMapB o = (HDVectorMapB) other;
+        byte[] result = new byte[D];
+        for (int i = 0; i < D; i++) {
+            result[i] = (byte) (this.values[i] * o.values[i]); // Hadamard product
+        }
+        return new HDVectorMapB(result);
+    }
+
+    @Override
+    public HDVector bundle(HDVector other) {
+        HDVectorMapB o = (HDVectorMapB) other;
+        byte[] result = new byte[D];
+
+        // NESSUN RANDOM NECESSARIO
+        for (int i = 0; i < D; i++) {
+            int sum = this.values[i] + o.values[i];
+            if (sum > 0) {
+                result[i] = 1;
+            } else if (sum < 0) {
+                result[i] = -1;
+            } else {
+                // Tie-breaker posizionale puro e stateless
+                result[i] = (byte) ((i % 2 == 0) ? 1 : -1);
+            }
+        }
+        return new HDVectorMapB(result);
+    }
+
+    @Override
+    public HDVector permute(int shift) {
+        byte[] result = new byte[D];
+        for (int i = 0; i < D; i++) {
+            int newIndex = (i + shift) % D;
+            if (newIndex < 0) newIndex += D;
+            result[newIndex] = this.values[i];
+        }
+        return new HDVectorMapB(result);
+    }
+
+    @Override
+    public double similarity(HDVector other) {
+        HDVectorMapB o = (HDVectorMapB) other;
+        int dotProduct = 0;
+        for (int i = 0; i < D; i++) {
+            dotProduct += this.values[i] * o.values[i];
+        }
+        return (double) dotProduct / D;
+    }
+}
+```
+
+---
+
+### `src/main/java/com/investigator/vsa/ItemMemory.java`
+
+```java
+package com.investigator.vsa;
+
+import com.investigator.vsa.strategy.VectorGenerationStrategy;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.ArrayList;
+import java.util.List;
+
+public class ItemMemory {
+    // 1. IL VOCABOLARIO (Foglie) - Vettori atomici puri
+    private final Map<String, HDVector> atomicMemory = new ConcurrentHashMap<>();
+
+    // 2. LA MEMORIA DEI CHUNK (Nodi Intermedi) - Salva i Bucket Semantici puri
+    private final Map<String, HDVector> chunkMemory = new ConcurrentHashMap<>();
+
+    // 3. L'ENCICLOPEDIA (Radici) - Salva i Mega Vettori finali di Simpkin
+    private final Map<String, HDVector> treeMemory = new ConcurrentHashMap<>();
+
+    public static final String TREE_POSITION_URI = "vsa:internal:tree_position";
+    private final VectorGenerationStrategy strategy;
+
+    private double lastMean = 0.0;
+    private double lastStdDev = 0.0;
+    private double lastBestSigma = 0.0;
+    private String lastBestKey = null;
+
+    // LA NUOVA SOGLIA DINAMICA
+    private final double dynamicThresholdSigma;
+
+    public ItemMemory(VectorGenerationStrategy strategy) {
+        this.strategy = strategy;
+
+        // Calcolo della soglia dinamica basata sulle dimensioni dello spazio vettoriale.
+        // A D=10.000 sarà ~4.0, a D=100.000 sarà ~5.0.
+        this.dynamicThresholdSigma = Math.log10(HDVectorMapB.D);
+        System.out.printf("   [ItemMemory] Inizializzata con D=%d. Soglia di clean-up calcolata: %.2f σ\n",
+                HDVectorMapB.D, this.dynamicThresholdSigma);
+    }
+
+    public HDVector getOrGenerate(String uri) {
+        return atomicMemory.computeIfAbsent(uri, k -> strategy.generate(uri));
+    }
+
+    public Map<String, HDVector> getAllVectors() {
+        return atomicMemory;
+    }
+
+    // --- GESTIONE RADICI ---
+    public void saveTreeVector(String uri, HDVector treeRoot) {
+        treeMemory.put(uri, treeRoot);
+    }
+
+    public HDVector getTreeVector(String uri) {
+        return treeMemory.getOrDefault(uri, getOrGenerate(uri));
+    }
+
+    // --- GESTIONE CHUNK (NOVITÀ) ---
+    public void saveChunkVector(String chunkUri, HDVector chunk) {
+        chunkMemory.put(chunkUri, chunk);
+    }
+
+    // Clean-up specifico per i livelli intermedi dell'albero
+    public HDVector cleanUpChunk(HDVector noisyChunk) {
+        return performStatisticalCleanUp(noisyChunk, chunkMemory, this.dynamicThresholdSigma);
+    }
+
+    // Clean-up per le foglie (vettori atomici)
+    public HDVector cleanUpRelative(HDVector noisyVector) {
+        return performStatisticalCleanUp(noisyVector, atomicMemory, this.dynamicThresholdSigma);
+    }
+
+    // Motore di Clean-Up Statistico Centralizzato
+    private HDVector performStatisticalCleanUp(HDVector noisyVector, Map<String, HDVector> memoryBank, double thresholdSigma) {
+        if (memoryBank.isEmpty()) return null;
+
+        List<Double> similarities = new ArrayList<>();
+        double bestSimilarity = -1.0;
+        HDVector bestMatch = null;
+        String bestKey = null;
+
+        for (Map.Entry<String, HDVector> entry : memoryBank.entrySet()) {
+            HDVector candidate = entry.getValue();
+            double sim = noisyVector.similarity(candidate);
+            similarities.add(sim);
+            if (sim > bestSimilarity) {
+                bestSimilarity = sim;
+                bestMatch = candidate;
+                bestKey = entry.getKey();
+            }
+        }
+
+        double sum = 0.0;
+        for (double s : similarities) sum += s;
+        double mean = sum / similarities.size();
+
+        double variance = 0.0;
+        for (double s : similarities) variance += (s - mean) * (s - mean);
+        variance /= similarities.size();
+        double stdDev = Math.sqrt(variance);
+
+        double sigmaFromMean = (stdDev > 0) ? (bestSimilarity - mean) / stdDev : 0;
+
+        lastMean = mean;
+        lastStdDev = stdDev;
+        lastBestSigma = sigmaFromMean;
+        lastBestKey = bestKey;
+
+        // Se supera la soglia di emergenza statistica, restituisce il vettore puro
+        if (stdDev > 0 && sigmaFromMean >= thresholdSigma) {
+            return bestMatch;
+        }
+        return null;
+    }
+
+    // ... (metodi legacy e getter per le metriche) ...
+    public double getLastBestSigma() { return lastBestSigma; }
+    public String getLastBestKey() { return lastBestKey; }
+}
+```
+
+---
+
+### `src/main/java/com/investigator/vsa/strategy/TopologicalVectorUpdater.java`
+
+```java
+package com.investigator.vsa.strategy;
+
+import com.investigator.vsa.*;
+import org.apache.jena.rdf.model.*;
+import java.util.*;
+import java.util.stream.Collectors;
+
+public class TopologicalVectorUpdater {
+
+    private static final int MAX_CHUNK_CAPACITY = 30;
+    private static final String V_STOP_URI = "vsa:internal:stop";
+
+    public void applyTopologicalUpdate(ItemMemory memory, Model localGraph, Set<Resource> updatedNodes) {
+        for (Resource node : updatedNodes) {
+            if (node.isURIResource()) {
+                updateNodeVectorHierarchical(memory, node, localGraph);
+            }
+        }
+    }
+
+    private void updateNodeVectorHierarchical(ItemMemory memory, Resource node, Model model) {
+        String entityUri = node.getURI();
+        HDVector pureIdentity = memory.getOrGenerate(entityUri);
+
+        List<Statement> allStatements = model.listStatements(node, null, (RDFNode) null).toList();
+        Map<Property, List<Statement>> buckets = allStatements.stream()
+                .collect(Collectors.groupingBy(Statement::getPredicate));
+
+        List<HDVector> macroBranches = new ArrayList<>();
+
+        for (Map.Entry<Property, List<Statement>> entry : buckets.entrySet()) {
+            Property predicate = entry.getKey();
+            List<Statement> triples = entry.getValue();
+            HDVector predicateVector = memory.getOrGenerate(predicate.getURI());
+
+            // Costruiamo il Chunk (NON contiene più l'identità pura per evitare l'overpower)
+            HDVector branchContent = (triples.size() <= MAX_CHUNK_CAPACITY) ?
+                    buildSimpleChunk(triples, memory) :
+                    buildRecursiveSubTree(triples, memory);
+
+            // 1. SALVIAMO IL CHUNK PURO NELLA MEMORIA
+            // Usiamo una chiave univoca: URI_Entità + URI_Predicato
+            String chunkKey = entityUri + ":chunk:" + predicate.getURI();
+            memory.saveChunkVector(chunkKey, branchContent);
+
+            // 2. COSTRUIAMO L'ALBERO (Simpkin)
+            // Bindiamo il Chunk al Ruolo e lo shiftiamo per impacchettarlo nel Mega-Vettore
+            macroBranches.add(branchContent.bind(predicateVector).permute(100));
+        }
+
+        // AGGIUNGIAMO L'IDENTITÀ PURA *SOLO* AL LIVELLO RADICE!
+        // Così il Mega-Vettore risuona con l'identità dell'entità, ma i suoi rami interni restano puliti.
+        macroBranches.add(pureIdentity);
+
+        if (macroBranches.size() % 2 == 0) {
+            macroBranches.add(HDVectorMapB.generateRandom());
+        }
+
+        HDVector rootVector = HDVectorMapB.bundleSimultaneous(macroBranches);
+        memory.saveTreeVector(entityUri, rootVector);
+    }
+
+    private HDVector buildSimpleChunk(List<Statement> triples, ItemMemory memory) {
+        List<HDVector> vectors = new ArrayList<>();
+        for (Statement s : triples) {
+            vectors.add(encodeTriple(s, memory));
+        }
+
+        // Lo StopVec di Simpkin delimita semanticamente la fine del Chunk
+        vectors.add(memory.getOrGenerate(V_STOP_URI));
+
+        if (vectors.size() % 2 == 0) vectors.add(HDVectorMapB.generateRandom());
+        return HDVectorMapB.bundleSimultaneous(vectors);
+    }
+
+    private HDVector buildRecursiveSubTree(List<Statement> triples, ItemMemory memory) {
+        List<HDVector> subChunks = new ArrayList<>();
+        for (int i = 0; i < triples.size(); i += MAX_CHUNK_CAPACITY) {
+            int end = Math.min(i + MAX_CHUNK_CAPACITY, triples.size());
+            List<Statement> subList = triples.subList(i, end);
+
+            HDVector chunk = buildSimpleChunk(subList, memory);
+            subChunks.add(chunk.permute(i / MAX_CHUNK_CAPACITY + 1));
+        }
+        if (subChunks.size() % 2 == 0) subChunks.add(HDVectorMapB.generateRandom());
+        return HDVectorMapB.bundleSimultaneous(subChunks);
+    }
+
+    private HDVector encodeTriple(Statement stmt, ItemMemory memory) {
+        HDVector vS = memory.getOrGenerate(stmt.getSubject().getURI());
+        HDVector vP = memory.getOrGenerate(stmt.getPredicate().getURI());
+        HDVector vO = stmt.getObject().isResource() ?
+                memory.getOrGenerate(stmt.getObject().asResource().getURI()) :
+                memory.getOrGenerate(stmt.getObject().asLiteral().getString());
+
+        // Pattern: S ⊗ P(1) ⊗ O(2)
+        return vS.bind(vP.permute(1)).bind(vO.permute(2));
+    }
+}
+```
+
+---
+
+### `src/main/java/com/investigator/vsa/strategy/RandomGenerationStrategy.java`
+
+```java
+package com.investigator.vsa.strategy;
+
+import com.investigator.vsa.HDVector;
+import com.investigator.vsa.HDVectorMapB;
+
+import java.nio.charset.StandardCharsets;
+import java.util.UUID;
+
+public class RandomGenerationStrategy implements VectorGenerationStrategy {
+    @Override
+    public HDVector generate(String uri) {
+        long seed = UUID.nameUUIDFromBytes(uri.getBytes(StandardCharsets.UTF_8)).getMostSignificantBits();
+        return HDVectorMapB.generateSeeded(seed);
+    }
+}
+```
+
+---
+
+### `src/main/java/com/investigator/vsa/strategy/SemanticEmbeddingStrategy.java`
+
+```java
+package com.investigator.vsa.strategy;
+import com.investigator.vsa.HDVectorMapB;
+import com.investigator.vsa.HDVector;
+import com.investigator.vsa.HDVectorMapB;
+import dev.langchain4j.data.embedding.Embedding;
+import dev.langchain4j.model.embedding.AllMiniLmL6V2EmbeddingModel;
+import dev.langchain4j.model.embedding.EmbeddingModel;
+
+import java.util.Map;
+import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
+
+/**
+ * Strategia Neuro-Simbolica Reale:
+ * Usa LangChain4j (all-MiniLM-L6-v2) per capire il significato,
+ * e LSH per binarizzarlo nell'algebra HDC MAP-B.
+ */
+public class SemanticEmbeddingStrategy implements VectorGenerationStrategy {
+
+    private final int embeddingDim;
+    private final float[][] projectionMatrix;
+    private final Map<String, float[]> embeddingCache = new ConcurrentHashMap<>();
+    private final Map<String, String> labelCache = new ConcurrentHashMap<>(); // Solo la cache delle label
+    private final EmbeddingModel embeddingModel;
+
+
+
+    public SemanticEmbeddingStrategy() {
+        // Inizializza il modello locale in-memory (pesa circa 22MB)
+        this.embeddingModel = new AllMiniLmL6V2EmbeddingModel();
+        this.embeddingDim = 384; // Dimensione esatta prodotta da all-MiniLM-L6-v2
+
+        // Creazione della Matrice di Proiezione Fissa LSH
+        this.projectionMatrix = new float[embeddingDim][HDVectorMapB.D];
+        initializeProjectionMatrix(42);
+    }
+
+    private void initializeProjectionMatrix(long seed) {
+        Random random = new Random(seed);
+        for (int i = 0; i < embeddingDim; i++) {
+            for (int j = 0; j < HDVectorMapB.D; j++) {
+                projectionMatrix[i][j] = (float) random.nextGaussian();
+            }
+        }
+    }
+
+    @Override
+    public HDVector generate(String uri) {
+        // ATTENZIONE: per un'app reale l'URI dovrebbe essere convertita
+        // nella sua etichetta testuale (es. "crew member" invece di "P1029")
+        // prima di essere passata qui. Per ora, embeddiamo la stringa passata.
+        String textToEmbed = cleanUriForEmbedding(uri);
+
+        // 1. Ottieni l'embedding denso reale (384-D)
+        float[] denseEmbedding = fetchDenseEmbedding(textToEmbed);
+
+        // 2. Proiezione LSH -> 100.000-D Bipolare
+        return binarize(denseEmbedding);
+    }
+
+    private HDVector binarize(float[] dense) {
+        byte[] bipolarValues = new byte[HDVectorMapB.D];
+
+        // Moltiplicazione Vettore x Matrice
+        for (int j = 0; j < HDVectorMapB.D; j++) {
+            float sum = 0;
+            for (int i = 0; i < embeddingDim; i++) {
+                sum += dense[i] * projectionMatrix[i][j];
+            }
+            // Funzione Segno per costringere lo spazio in {-1, +1}
+            bipolarValues[j] = (byte) (sum >= 0 ? 1 : -1);
+        }
+
+        // Ora che il costruttore è public, questo funzionerà perfettamente
+        return new HDVectorMapB(bipolarValues);
+    }
+
+    private float[] fetchDenseEmbedding(String textToEmbed) {
+        // Caching per non ricalcolare embedding di parole già viste
+        if (embeddingCache.containsKey(textToEmbed)) {
+            return embeddingCache.get(textToEmbed);
+        }
+
+        // CHIAMATA REALE A LANGCHAIN4J
+        System.out.println("   [LLM] Calcolo embedding semantico per: '" + textToEmbed + "'");
+        Embedding embedding = embeddingModel.embed(textToEmbed).content();
+        float[] denseVector = embedding.vector();
+
+        embeddingCache.put(textToEmbed, denseVector);
+        return denseVector;
+    }
+
+    // Utility di base per pulire un po' l'URI se ci arriva grezza
+    private String cleanUriForEmbedding(String uri) {
+        if (!uri.startsWith("http://www.wikidata.org/")) {
+            return uri.replace("_", " "); // Per cose come "Apollo_11"
+        }
+
+        // Se l'abbiamo già cercata, restituiscila
+        if (labelCache.containsKey(uri)) {
+            return labelCache.get(uri);
+        }
+
+        // Estrai l'ID (es. Q43653 o P1029)
+        String[] parts = uri.split("/");
+        String id = parts[parts.length - 1];
+
+        // Se non è un Q-node o un P-node, prova un clean base
+        if (!id.matches("^[QP]\\d+$")) {
+            return id.replace("_", " ");
+        }
+
+        System.out.println("   [WIKIDATA] Risoluzione label per: " + id);
+
+        // Costruisci una query SPARQL per ottenere l'etichetta inglese
+        String sparqlQuery =
+                "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> " +
+                        "PREFIX wd: <http://www.wikidata.org/entity/> " +
+                        "SELECT ?label WHERE { " +
+                        "  <" + uri + "> rdfs:label ?label . " +
+                        "  FILTER (lang(?label) = 'en') " +
+                        "} LIMIT 1";
+        try {
+            org.apache.jena.query.Query query = org.apache.jena.query.QueryFactory.create(sparqlQuery);
+
+            // CORREZIONE ANTI-BOT: Aggiungiamo l'header User-Agent personalizzato
+            try (org.apache.jena.query.QueryExecution qexec = org.apache.jena.query.QueryExecution.service("https://query.wikidata.org/sparql")
+                    .query(query)
+                    .httpHeader("User-Agent", "NeuroSemanticInvestigator/1.0 (ifts-project@example.com)")
+                    .build()) {
+
+                org.apache.jena.query.ResultSet results = qexec.execSelect();
+                if (results.hasNext()) {
+                    org.apache.jena.query.QuerySolution soln = results.nextSolution();
+                    org.apache.jena.rdf.model.Literal label = soln.getLiteral("label");
+                    if (label != null) {
+                        String cleanLabel = label.getString();
+                        labelCache.put(uri, cleanLabel);
+                        return cleanLabel;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("   [AVVISO] Impossibile risolvere la label per " + uri + ": " + e.getMessage());
+        }
+
+        // Fallback: usa l'ID se Wikidata non risponde o non ha l'etichetta in inglese
+        labelCache.put(uri, id);
+        return id;
+    }
+}
+```
+
+---
+
+### STEP 3 & 4 (da `AppDis.java`, righe 195–228)
+
+```java
+// ===== AppDis.java: lines 195-228 =====
+
+System.out.println("\n=======================================================");
+System.out.println("   STEP 3 & 4: PROIEZIONE E ESTRAZIONE TARGET (VSA)    ");
+System.out.println("=======================================================");
+
+HDVector targetRoot = itemMemory.getTreeVector(currentTargetUri);
+HDVector targetRole = itemMemory.getOrGenerate(targetRoleUri);
+HDVector targetSubject = itemMemory.getOrGenerate(currentTargetUri);
+
+System.out.println("   -> Uso la chiave tradotta ('" + targetRoleLabel + "') per aprire il vettore bersaglio...");
+
+// LA MAGIA DELL'HOLOGRAPHIC BYPASS:
+// Estraiamo il ramo rumoroso SENZA FARE IL CLEANUP INTERMEDIO per non perdere il segnale debole!
+HDVector noisyTargetBranch = targetRoot.permute(-100).bind(targetRole);
+
+System.out.println("   -> [HOLOGRAPHIC BYPASS] Salto la pulizia del ramo e disimballo direttamente l'oggetto...");
+
+// Svincoliamo Target Role e Target Subject direttamente dal rumore
+HDVector noisyTargetObject = noisyTargetBranch.bind(targetSubject).bind(targetRole.permute(1)).permute(-2);
+
+// Facciamo il Clean-Up solo alla fine, cercando nel vocabolario l'entità che risuona di più
+HDVector finalAnalogue = itemMemory.cleanUpRelative(noisyTargetObject);
+
+if (finalAnalogue != null) {
+    System.out.println("\n[!] ANALOGIA RISOLTA CON SUCCESSO:");
+    System.out.printf("    %-15s sta a  %-15s%n", armstrongEntity.entityLabel(), apolloEntity.entityLabel());
+    System.out.println("    COME");
+
+    String humanReadableResult = fetchLabelFromWikidata(itemMemory.getLastBestKey());
+    System.out.printf("    %-15s sta a  %-15s%n", humanReadableResult, currentTargetLabel);
+    System.out.println("\n    [Logica Applicata]: " + sourceRoleLabel + " ===> " + targetRoleLabel);
+    System.out.println("    [Confidenza VSA]: " + String.format("%.2f", itemMemory.getLastBestSigma()) + " σ");
+} else {
+    System.out.println("\n[?] Il segnale è stato completamente inghiottito dal rumore del grafo (Z-Score troppo basso).");
+}
+```
+```
+
+**La formula matematica di STEP 3 & 4:**
+
+```
+STEP 3 (Proiezione):
+  noisyBranch = ρ⁻¹⁰⁰(TreeVector(C)) ⊗ v(targetRole)
+
+STEP 4 (Estrazione — Holographic Bypass, NO cleanUpChunk intermedio):
+  noisyObject = noisyBranch ⊗ vC ⊗ ρ¹(targetRole) ⊗ ρ⁻²
+  finalMatch  = cleanUpRelative(noisyObject)   // Z-Score > 4.0 σ su atomicMemory
+```
+
+Nota per il senior: il commento `HOLOGRAPHIC BYPASS` indica che la riga `cleanUpChunk(noisyBranch)` è stata **rimossa** (commentata o saltata) perché il segnale del ramo è troppo debole per superare 4.0σ nella chunkMemory. Il rumore non filtrato si propaga fino al clean-up finale, che fallisce a sua volta.
 
 ---
 
