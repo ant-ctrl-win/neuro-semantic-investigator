@@ -172,19 +172,44 @@ public class AppDis {
         System.out.printf("   -> DEDUZIONE COMPLETATA: L'oggetto è legato tramite '%s' (Sim: %.2f)\n", sourceRoleLabel, bestHypothesisScore);
 
         System.out.println("\n=======================================================");
-        System.out.println("   STEP 2: IL PONTE ANALOGICO (Embedding)                    ");
+        System.out.println("   STEP 2: IL PONTE ANALOGICO (Embedding + Filtro Strutturale) ");
         System.out.println("=======================================================");
 
-        Map<String, String> targetProperties = extractPropertyLabels(targetResource, localModel);
+        Map<String, String> allTargetProperties = extractPropertyLabels(targetResource, localModel);
+        Map<String, String> targetProperties = new HashMap<>();
 
-        // Arricchiamo le label con il tipo atteso della proprietà (es. "composer [expects: human]")
-        Map<String, String> enrichedProperties = translator.enrichLabelsWithExpectedTypes(targetProperties);
+        System.out.println("   [FILTRO STRUTTURALE RDF] Scrematura delle proprietà incompatibili...");
+        // Sappiamo che l'Oggetto Noto (William Shakespeare) è un'Entità (Resource/URI).
+        // Scartiamo tutte le proprietà del Target (Requiem) che puntano a stringhe, ID o date (Literal).
 
-        System.out.println("   -> Chiedo all'Embedding di tradurre '" + sourceRoleLabel + "' nel dominio di " + currentTargetLabel + "...");
-        System.out.println("   -> (Proprietà arricchite con tipo atteso per matching strutturale)");
+        for (Map.Entry<String, String> entry : allTargetProperties.entrySet()) {
+            String propUri = entry.getKey();
+            String propLabel = entry.getValue();
 
+            boolean pointsToEntity = false;
+            // Interroghiamo il grafo locale
+            org.apache.jena.rdf.model.StmtIterator iter = localModel.listStatements(targetResource, localModel.getProperty(propUri), (RDFNode) null);
+            while (iter.hasNext()) {
+                RDFNode obj = iter.next().getObject();
+                // Verifichiamo che l'oggetto sia una Risorsa e punti a un Q-node di Wikidata (un'entità)
+                if (obj.isResource() && obj.asResource().getURI() != null && obj.asResource().getURI().contains("/entity/Q")) {
+                    pointsToEntity = true;
+                    break; // Basta che uno degli oggetti sia un'entità per validare la proprietà
+                }
+            }
+
+            if (pointsToEntity) {
+                targetProperties.put(propUri, propLabel);
+            }
+        }
+
+        System.out.println("   -> Proprietà rimaste dopo il filtro strutturale: " + targetProperties.size() + " su " + allTargetProperties.size());
+        System.out.println("   -> Chiedo all'Embedding di tradurre '" + sourceRoleLabel + "' tra i candidati rimasti...");
+
+        // Ora passiamo all'LLM SOLO le proprietà che puntano a entità.
+        // Niente più suffissi finti, passiamo le label pulite!
         String targetRoleUri = translator.findSemanticEquivalent(
-                sourceRoleLabel, sourceRoleUri, enrichedProperties, 0.35);
+                sourceRoleLabel, null, targetProperties, 0.30); // Soglia abbassata leggermente perché le label sono nude
 
         if (targetRoleUri == null) {
             System.out.println("   [ERRORE] Il traduttore non ha trovato un equivalente per '" + sourceRoleLabel + "'. Analogia fallita.");

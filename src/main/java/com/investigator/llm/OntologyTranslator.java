@@ -21,7 +21,7 @@ public class OntologyTranslator {
 
     /**
      * Arricchisce una mappa URI→label con il tipo atteso della proprietà (range constraint),
-     * per migliorare il matching embedding. Es. "composer [expects: human]" vs "author [expects: human]".
+     * per migliorare il matching embedding.
      */
     public Map<String, String> enrichLabelsWithExpectedTypes(Map<String, String> uriToLabel) {
         List<String> uris = new ArrayList<>(uriToLabel.keySet());
@@ -33,8 +33,10 @@ public class OntologyTranslator {
             String uri = entry.getKey();
             String label = entry.getValue();
             String expected = expectedTypeCache.getOrDefault(uri, "");
+
+            // Formulazione ottimizzata per la comprensione dell'LLM
             if (!expected.isEmpty()) {
-                enriched.put(uri, label + " [expects: " + expected + "]");
+                enriched.put(uri, label + " (value type: " + expected + ")");
             } else {
                 enriched.put(uri, label);
             }
@@ -49,22 +51,24 @@ public class OntologyTranslator {
                 .map(uri -> "<" + uri + ">")
                 .collect(Collectors.joining(" "));
 
+        // Aggiunto wikibase:propertyType come fallback infallibile per stringhe, date e numeri
         String sparql =
                 "PREFIX wd: <http://www.wikidata.org/entity/>\n" +
-                "PREFIX wdt: <http://www.wikidata.org/prop/direct/>\n" +
-                "PREFIX p: <http://www.wikidata.org/prop/>\n" +
-                "PREFIX ps: <http://www.wikidata.org/prop/statement/>\n" +
-                "PREFIX pq: <http://www.wikidata.org/prop/qualifier/>\n" +
-                "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\n" +
-                "SELECT ?prop ?expectedTypeLabel WHERE {\n" +
-                "  VALUES ?prop { " + valuesClause + " }\n" +
-                "  OPTIONAL {\n" +
-                "    ?prop p:P2302 ?stmt.\n" +
-                "    ?stmt ps:P2302 wd:Q21510865.\n" +
-                "    ?stmt pq:P2308 ?expectedType.\n" +
-                "    ?expectedType rdfs:label ?expectedTypeLabel. FILTER(lang(?expectedTypeLabel)='en')\n" +
-                "  }\n" +
-                "}";
+                        "PREFIX p: <http://www.wikidata.org/prop/>\n" +
+                        "PREFIX ps: <http://www.wikidata.org/prop/statement/>\n" +
+                        "PREFIX pq: <http://www.wikidata.org/prop/qualifier/>\n" +
+                        "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\n" +
+                        "PREFIX wikibase: <http://wikiba.se/ontology#>\n" +
+                        "SELECT ?prop ?expectedTypeLabel ?propType WHERE {\n" +
+                        "  VALUES ?prop { " + valuesClause + " }\n" +
+                        "  OPTIONAL { ?prop wikibase:propertyType ?propType . }\n" +
+                        "  OPTIONAL {\n" +
+                        "    ?prop p:P2302 ?stmt.\n" +
+                        "    ?stmt ps:P2302 wd:Q21510865.\n" +
+                        "    ?stmt pq:P2308 ?expectedType.\n" +
+                        "    ?expectedType rdfs:label ?expectedTypeLabel. FILTER(lang(?expectedTypeLabel)='en')\n" +
+                        "  }\n" +
+                        "}";
 
         Map<String, String> result = new LinkedHashMap<>();
         try {
@@ -77,9 +81,24 @@ public class OntologyTranslator {
                 while (rs.hasNext()) {
                     org.apache.jena.query.QuerySolution soln = rs.next();
                     String propUri = soln.getResource("prop").getURI();
-                    String typeLabel = soln.contains("expectedTypeLabel")
-                            ? soln.getLiteral("expectedTypeLabel").getString() : "";
-                    result.put(propUri, typeLabel);
+
+                    String typeLabel = soln.contains("expectedTypeLabel") ? soln.getLiteral("expectedTypeLabel").getString() : "";
+                    String propType = soln.contains("propType") ? soln.getResource("propType").getLocalName() : "";
+
+                    String finalType = typeLabel;
+
+                    // Se Wikidata non ha un constraint esplicito, deduciamo dal tipo base della proprietà
+                    if (finalType.isEmpty() && !propType.isEmpty()) {
+                        if (propType.contains("String") || propType.contains("Text")) {
+                            finalType = "text string";
+                        } else if (propType.contains("Quantity") || propType.contains("Math")) {
+                            finalType = "numeric value";
+                        } else if (propType.contains("Time") || propType.contains("Date")) {
+                            finalType = "date or time";
+                        }
+                    }
+
+                    result.put(propUri, finalType);
                 }
             }
         } catch (Exception e) {
@@ -92,17 +111,19 @@ public class OntologyTranslator {
         return findSemanticEquivalent(sourceConcept, null, targetProperties, threshold);
     }
 
-    /**
-     * Trova la proprietà target semanticamente più simile al concetto sorgente.
-     * Se sourcePropertyUri è fornito, arricchisce il concetto con il suo tipo atteso.
-     */
-    public String findSemanticEquivalent(String sourceConcept, String sourcePropertyUri,
+    public String findSemanticEquivalent(String sourceLabel, String sourcePropertyUri,
                                          Map<String, String> targetProperties, double threshold) {
-        String enrichedSource = sourceConcept;
-        if (sourcePropertyUri != null && expectedTypeCache.containsKey(sourcePropertyUri)) {
-            String srcType = expectedTypeCache.get(sourcePropertyUri);
+
+        // FIX: Scarichiamo al volo il tipo della proprietà sorgente se non è in cache
+        if (sourcePropertyUri != null && !expectedTypeCache.containsKey(sourcePropertyUri)) {
+            expectedTypeCache.putAll(batchFetchExpectedTypes(Collections.singletonList(sourcePropertyUri)));
+        }
+
+        String enrichedSource = sourceLabel;
+        if (sourcePropertyUri != null) {
+            String srcType = expectedTypeCache.getOrDefault(sourcePropertyUri, "");
             if (!srcType.isEmpty()) {
-                enrichedSource = sourceConcept + " [expects: " + srcType + "]";
+                enrichedSource = sourceLabel + " (value type: " + srcType + ")";
             }
         }
 
@@ -144,13 +165,6 @@ public class OntologyTranslator {
         }
     }
 
-    /**
-     * Esegue un Semantic Reranking su una lista di candidati, basato sulla classe ontologica desiderata.
-     */
-    /**
-     * Confronta due classi ontologiche usando embedding semantico invece di uguaglianza stringale.
-     * Es. "tragedy" vs "musical composition" sono entrambe creative works e avranno similarità > soglia.
-     */
     public boolean areClassesCompatible(String classLabelA, String classLabelB, double threshold) {
         if (classLabelA == null || classLabelB == null) return true;
         Embedding embA = llm.embed(classLabelA).content();
@@ -176,19 +190,12 @@ public class OntologyTranslator {
 
         for (ResolvedEntity candidate : candidates) {
             String candidateClass = candidate.classLabel();
-            if (candidateClass == null) {
-                System.out.printf("      -> Salto [%s]: Classe non definita\n", candidate.entityLabel());
-                continue;
-            }
+            if (candidateClass == null) continue;
 
             Embedding candidateEmbedding = llm.embed(candidateClass).content();
             double classSim = CosineSimilarity.between(targetEmbedding, candidateEmbedding);
             double sitelinksScore = maxSitelinks > 0 ? (double) candidate.sitelinks() / maxSitelinks : 0;
             double combined = classSim * 0.60 + sitelinksScore * 0.40;
-
-            System.out.printf("      -> [%s] Classe='%s' | ClassSim=%.3f | Sitelinks=%d (%.2f) | COMBINATO=%.3f\n",
-                    candidate.entityLabel(), candidateClass, classSim,
-                    candidate.sitelinks(), sitelinksScore, combined);
 
             if (combined > bestScore) {
                 bestScore = combined;
