@@ -1,0 +1,3856 @@
+{
+  "directed": false,
+  "multigraph": false,
+  "graph": {
+    "hyperedges": [
+      {
+        "id": "simpkin_tree_encoding_pipeline",
+        "label": "Simpkin Tree Encoding Pipeline",
+        "nodes": [
+          "topological_vector_updater",
+          "item_memory",
+          "hdvectormapb"
+        ],
+        "relation": "participate_in",
+        "confidence": "INFERRED",
+        "confidence_score": 0.9,
+        "source_file": "Description.md"
+      },
+      {
+        "id": "sparql_data_access_layer",
+        "label": "SPARQL Data Access Layer",
+        "nodes": [
+          "entity_resolver",
+          "triple_extractor",
+          "sparql_endpoint"
+        ],
+        "relation": "participate_in",
+        "confidence": "INFERRED",
+        "confidence_score": 0.85,
+        "source_file": "AGENTS_0.md"
+      },
+      {
+        "id": "semantic_bridge_subsystem",
+        "label": "Semantic Bridge Subsystem (Embedding-Based Cross-Ontology Matching)",
+        "nodes": [
+          "ontology_translator",
+          "semantic_embedding_strategy",
+          "all_minilm_model"
+        ],
+        "relation": "participate_in",
+        "confidence": "INFERRED",
+        "confidence_score": 0.85,
+        "source_file": "Description.md"
+      }
+    ]
+  },
+  "nodes": [
+    {
+      "label": "App.java",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/App.java",
+      "source_location": "L1",
+      "id": "main_java_com_investigator_app_java",
+      "community": 3,
+      "norm_label": "app.java"
+    },
+    {
+      "label": "App",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/App.java",
+      "source_location": "L13",
+      "id": "investigator_app_app",
+      "community": 3,
+      "norm_label": "app"
+    },
+    {
+      "label": ".main()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/App.java",
+      "source_location": "L14",
+      "id": "investigator_app_app_main",
+      "community": 3,
+      "norm_label": ".main()"
+    },
+    {
+      "label": ".fetchDescriptionFromWikidata()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/App.java",
+      "source_location": "L231",
+      "id": "investigator_app_app_fetchdescriptionfromwikidata",
+      "community": 3,
+      "norm_label": ".fetchdescriptionfromwikidata()"
+    },
+    {
+      "label": ".extractPropertyLabels()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/App.java",
+      "source_location": "L257",
+      "id": "investigator_app_app_extractpropertylabels",
+      "community": 3,
+      "norm_label": ".extractpropertylabels()"
+    },
+    {
+      "label": ".fetchLabelFromWikidata()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/App.java",
+      "source_location": "L297",
+      "id": "investigator_app_app_fetchlabelfromwikidata",
+      "community": 3,
+      "norm_label": ".fetchlabelfromwikidata()"
+    },
+    {
+      "label": ".isMetadata()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/App.java",
+      "source_location": "L331",
+      "id": "investigator_app_app_ismetadata",
+      "community": 3,
+      "norm_label": ".ismetadata()"
+    },
+    {
+      "label": "AppDis.java",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/AppDis.java",
+      "source_location": "L1",
+      "id": "main_java_com_investigator_appdis_java",
+      "community": 2,
+      "norm_label": "appdis.java"
+    },
+    {
+      "label": "AppDis",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/AppDis.java",
+      "source_location": "L13",
+      "id": "investigator_appdis_appdis",
+      "community": 2,
+      "norm_label": "appdis"
+    },
+    {
+      "label": ".main()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/AppDis.java",
+      "source_location": "L14",
+      "id": "investigator_appdis_appdis_main",
+      "community": 2,
+      "norm_label": ".main()"
+    },
+    {
+      "label": ".fetchDescriptionFromWikidata()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/AppDis.java",
+      "source_location": "L271",
+      "id": "investigator_appdis_appdis_fetchdescriptionfromwikidata",
+      "community": 2,
+      "norm_label": ".fetchdescriptionfromwikidata()"
+    },
+    {
+      "label": ".extractPropertyLabels()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/AppDis.java",
+      "source_location": "L297",
+      "id": "investigator_appdis_appdis_extractpropertylabels",
+      "community": 2,
+      "norm_label": ".extractpropertylabels()"
+    },
+    {
+      "label": ".fetchLabelFromWikidata()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/AppDis.java",
+      "source_location": "L332",
+      "id": "investigator_appdis_appdis_fetchlabelfromwikidata",
+      "community": 2,
+      "norm_label": ".fetchlabelfromwikidata()"
+    },
+    {
+      "label": ".isMetadata()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/AppDis.java",
+      "source_location": "L364",
+      "id": "investigator_appdis_appdis_ismetadata",
+      "community": 2,
+      "norm_label": ".ismetadata()"
+    },
+    {
+      "label": "InvestigationEngine.java",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/engine/InvestigationEngine.java",
+      "source_location": "L1",
+      "id": "main_java_com_investigator_engine_investigationengine_java",
+      "community": 3,
+      "norm_label": "investigationengine.java"
+    },
+    {
+      "label": "InvestigationEngine",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/engine/InvestigationEngine.java",
+      "source_location": "L12",
+      "id": "engine_investigationengine_investigationengine",
+      "community": 3,
+      "norm_label": "investigationengine"
+    },
+    {
+      "label": ".InvestigationEngine()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/engine/InvestigationEngine.java",
+      "source_location": "L20",
+      "id": "engine_investigationengine_investigationengine_investigationengine",
+      "community": 3,
+      "norm_label": ".investigationengine()"
+    },
+    {
+      "label": ".processTriple()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/engine/InvestigationEngine.java",
+      "source_location": "L39",
+      "id": "engine_investigationengine_investigationengine_processtriple",
+      "community": 2,
+      "norm_label": ".processtriple()"
+    },
+    {
+      "label": ".expandAndProcess()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/engine/InvestigationEngine.java",
+      "source_location": "L63",
+      "id": "engine_investigationengine_investigationengine_expandandprocess",
+      "community": 4,
+      "norm_label": ".expandandprocess()"
+    },
+    {
+      "label": ".getGraphManager()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/engine/InvestigationEngine.java",
+      "source_location": "L89",
+      "id": "engine_investigationengine_investigationengine_getgraphmanager",
+      "community": 3,
+      "norm_label": ".getgraphmanager()"
+    },
+    {
+      "label": ".getItemMemory()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/engine/InvestigationEngine.java",
+      "source_location": "L93",
+      "id": "engine_investigationengine_investigationengine_getitemmemory",
+      "community": 3,
+      "norm_label": ".getitemmemory()"
+    },
+    {
+      "label": ".getNodeVectors()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/engine/InvestigationEngine.java",
+      "source_location": "L97",
+      "id": "engine_investigationengine_investigationengine_getnodevectors",
+      "community": 3,
+      "norm_label": ".getnodevectors()"
+    },
+    {
+      "label": ".getTripleVectors()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/engine/InvestigationEngine.java",
+      "source_location": "L101",
+      "id": "engine_investigationengine_investigationengine_gettriplevectors",
+      "community": 3,
+      "norm_label": ".gettriplevectors()"
+    },
+    {
+      "label": ".clearExtractedVectors()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/engine/InvestigationEngine.java",
+      "source_location": "L105",
+      "id": "engine_investigationengine_investigationengine_clearextractedvectors",
+      "community": 3,
+      "norm_label": ".clearextractedvectors()"
+    },
+    {
+      "label": "EntityResolver.java",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/jena/EntityResolver.java",
+      "source_location": "L1",
+      "id": "main_java_com_investigator_jena_entityresolver_java",
+      "community": 3,
+      "norm_label": "entityresolver.java"
+    },
+    {
+      "label": "EntityResolver",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/jena/EntityResolver.java",
+      "source_location": "L7",
+      "id": "jena_entityresolver_entityresolver",
+      "community": 3,
+      "norm_label": "entityresolver"
+    },
+    {
+      "label": ".resolve()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/jena/EntityResolver.java",
+      "source_location": "L33",
+      "id": "jena_entityresolver_entityresolver_resolve",
+      "community": 3,
+      "norm_label": ".resolve()"
+    },
+    {
+      "label": "GraphManager.java",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/jena/GraphManager.java",
+      "source_location": "L1",
+      "id": "main_java_com_investigator_jena_graphmanager_java",
+      "community": 4,
+      "norm_label": "graphmanager.java"
+    },
+    {
+      "label": "GraphManager",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/jena/GraphManager.java",
+      "source_location": "L92",
+      "id": "jena_graphmanager_graphmanager",
+      "community": 4,
+      "norm_label": "graphmanager"
+    },
+    {
+      "label": ".GraphManager()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/jena/GraphManager.java",
+      "source_location": "L97",
+      "id": "jena_graphmanager_graphmanager_graphmanager",
+      "community": 4,
+      "norm_label": ".graphmanager()"
+    },
+    {
+      "label": ".expandNode()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/jena/GraphManager.java",
+      "source_location": "L104",
+      "id": "jena_graphmanager_graphmanager_expandnode",
+      "community": 4,
+      "norm_label": ".expandnode()"
+    },
+    {
+      "label": ".expandNodeOutgoing()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/jena/GraphManager.java",
+      "source_location": "L113",
+      "id": "jena_graphmanager_graphmanager_expandnodeoutgoing",
+      "community": 4,
+      "norm_label": ".expandnodeoutgoing()"
+    },
+    {
+      "label": ".expandNodeIncoming()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/jena/GraphManager.java",
+      "source_location": "L117",
+      "id": "jena_graphmanager_graphmanager_expandnodeincoming",
+      "community": 4,
+      "norm_label": ".expandnodeincoming()"
+    },
+    {
+      "label": ".getNeighborhood()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/jena/GraphManager.java",
+      "source_location": "L121",
+      "id": "jena_graphmanager_graphmanager_getneighborhood",
+      "community": 4,
+      "norm_label": ".getneighborhood()"
+    },
+    {
+      "label": ".getUnexploredNodes()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/jena/GraphManager.java",
+      "source_location": "L133",
+      "id": "jena_graphmanager_graphmanager_getunexplorednodes",
+      "community": 4,
+      "norm_label": ".getunexplorednodes()"
+    },
+    {
+      "label": ".getLocalModel()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/jena/GraphManager.java",
+      "source_location": "L154",
+      "id": "jena_graphmanager_graphmanager_getlocalmodel",
+      "community": 4,
+      "norm_label": ".getlocalmodel()"
+    },
+    {
+      "label": "ResolvedEntity.java",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/jena/ResolvedEntity.java",
+      "source_location": "L1",
+      "id": "main_java_com_investigator_jena_resolvedentity_java",
+      "community": 11,
+      "norm_label": "resolvedentity.java"
+    },
+    {
+      "label": "SparqlEndpoint.java",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/jena/SparqlEndpoint.java",
+      "source_location": "L1",
+      "id": "main_java_com_investigator_jena_sparqlendpoint_java",
+      "community": 7,
+      "norm_label": "sparqlendpoint.java"
+    },
+    {
+      "label": "SparqlEndpoint",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/jena/SparqlEndpoint.java",
+      "source_location": "L13",
+      "id": "jena_sparqlendpoint_sparqlendpoint",
+      "community": 7,
+      "norm_label": "sparqlendpoint"
+    },
+    {
+      "label": ".SparqlEndpoint()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/jena/SparqlEndpoint.java",
+      "source_location": "L17",
+      "id": "jena_sparqlendpoint_sparqlendpoint_sparqlendpoint",
+      "community": 7,
+      "norm_label": ".sparqlendpoint()"
+    },
+    {
+      "label": ".getEndpointUrl()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/jena/SparqlEndpoint.java",
+      "source_location": "L21",
+      "id": "jena_sparqlendpoint_sparqlendpoint_getendpointurl",
+      "community": 7,
+      "norm_label": ".getendpointurl()"
+    },
+    {
+      "label": ".queryOutgoing()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/jena/SparqlEndpoint.java",
+      "source_location": "L25",
+      "id": "jena_sparqlendpoint_sparqlendpoint_queryoutgoing",
+      "community": 7,
+      "norm_label": ".queryoutgoing()"
+    },
+    {
+      "label": ".queryIncoming()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/jena/SparqlEndpoint.java",
+      "source_location": "L33",
+      "id": "jena_sparqlendpoint_sparqlendpoint_queryincoming",
+      "community": 7,
+      "norm_label": ".queryincoming()"
+    },
+    {
+      "label": ".executeConstructQuery()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/jena/SparqlEndpoint.java",
+      "source_location": "L41",
+      "id": "jena_sparqlendpoint_sparqlendpoint_executeconstructquery",
+      "community": 7,
+      "norm_label": ".executeconstructquery()"
+    },
+    {
+      "label": "TripleExtractor.java",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/jena/TripleExtractor.java",
+      "source_location": "L1",
+      "id": "main_java_com_investigator_jena_tripleextractor_java",
+      "community": 4,
+      "norm_label": "tripleextractor.java"
+    },
+    {
+      "label": "TripleExtractor",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/jena/TripleExtractor.java",
+      "source_location": "L15",
+      "id": "jena_tripleextractor_tripleextractor",
+      "community": 4,
+      "norm_label": "tripleextractor"
+    },
+    {
+      "label": ".extractBidirectional()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/jena/TripleExtractor.java",
+      "source_location": "L69",
+      "id": "jena_tripleextractor_tripleextractor_extractbidirectional",
+      "community": 4,
+      "norm_label": ".extractbidirectional()"
+    },
+    {
+      "label": "OntologyTranslator.java",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/llm/OntologyTranslator.java",
+      "source_location": "L1",
+      "id": "main_java_com_investigator_llm_ontologytranslator_java",
+      "community": 6,
+      "norm_label": "ontologytranslator.java"
+    },
+    {
+      "label": "OntologyTranslator",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/llm/OntologyTranslator.java",
+      "source_location": "L13",
+      "id": "llm_ontologytranslator_ontologytranslator",
+      "community": 6,
+      "norm_label": "ontologytranslator"
+    },
+    {
+      "label": ".OntologyTranslator()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/llm/OntologyTranslator.java",
+      "source_location": "L18",
+      "id": "llm_ontologytranslator_ontologytranslator_ontologytranslator",
+      "community": 6,
+      "norm_label": ".ontologytranslator()"
+    },
+    {
+      "label": ".enrichLabelsWithExpectedTypes()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/llm/OntologyTranslator.java",
+      "source_location": "L26",
+      "id": "llm_ontologytranslator_ontologytranslator_enrichlabelswithexpectedtypes",
+      "community": 6,
+      "norm_label": ".enrichlabelswithexpectedtypes()"
+    },
+    {
+      "label": ".batchFetchExpectedTypes()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/llm/OntologyTranslator.java",
+      "source_location": "L47",
+      "id": "llm_ontologytranslator_ontologytranslator_batchfetchexpectedtypes",
+      "community": 6,
+      "norm_label": ".batchfetchexpectedtypes()"
+    },
+    {
+      "label": ".findSemanticEquivalent()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/llm/OntologyTranslator.java",
+      "source_location": "L110",
+      "id": "llm_ontologytranslator_ontologytranslator_findsemanticequivalent",
+      "community": 6,
+      "norm_label": ".findsemanticequivalent()"
+    },
+    {
+      "label": ".areClassesCompatible()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/llm/OntologyTranslator.java",
+      "source_location": "L168",
+      "id": "llm_ontologytranslator_ontologytranslator_areclassescompatible",
+      "community": 6,
+      "norm_label": ".areclassescompatible()"
+    },
+    {
+      "label": ".disambiguateCandidates()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/llm/OntologyTranslator.java",
+      "source_location": "L178",
+      "id": "llm_ontologytranslator_ontologytranslator_disambiguatecandidates",
+      "community": 6,
+      "norm_label": ".disambiguatecandidates()"
+    },
+    {
+      "label": "HDVector.java",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/HDVector.java",
+      "source_location": "L1",
+      "id": "main_java_com_investigator_vsa_hdvector_java",
+      "community": 1,
+      "norm_label": "hdvector.java"
+    },
+    {
+      "label": "HDVector",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/HDVector.java",
+      "source_location": "L3",
+      "id": "vsa_hdvector_hdvector",
+      "community": 1,
+      "norm_label": "hdvector"
+    },
+    {
+      "label": ".bind()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/HDVector.java",
+      "source_location": "L4",
+      "id": "vsa_hdvector_hdvector_bind",
+      "community": 1,
+      "norm_label": ".bind()"
+    },
+    {
+      "label": ".bundle()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/HDVector.java",
+      "source_location": "L5",
+      "id": "vsa_hdvector_hdvector_bundle",
+      "community": 1,
+      "norm_label": ".bundle()"
+    },
+    {
+      "label": ".permute()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/HDVector.java",
+      "source_location": "L6",
+      "id": "vsa_hdvector_hdvector_permute",
+      "community": 1,
+      "norm_label": ".permute()"
+    },
+    {
+      "label": ".similarity()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/HDVector.java",
+      "source_location": "L7",
+      "id": "vsa_hdvector_hdvector_similarity",
+      "community": 1,
+      "norm_label": ".similarity()"
+    },
+    {
+      "label": "HDVectorMapB.java",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/HDVectorMapB.java",
+      "source_location": "L1",
+      "id": "main_java_com_investigator_vsa_hdvectormapb_java",
+      "community": 1,
+      "norm_label": "hdvectormapb.java"
+    },
+    {
+      "label": "HDVectorMapB",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/HDVectorMapB.java",
+      "source_location": "L7",
+      "id": "vsa_hdvectormapb_hdvectormapb",
+      "community": 1,
+      "norm_label": "hdvectormapb"
+    },
+    {
+      "label": ".HDVectorMapB()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/HDVectorMapB.java",
+      "source_location": "L11",
+      "id": "vsa_hdvectormapb_hdvectormapb_hdvectormapb",
+      "community": 1,
+      "norm_label": ".hdvectormapb()"
+    },
+    {
+      "label": ".generateRandom()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/HDVectorMapB.java",
+      "source_location": "L19",
+      "id": "vsa_hdvectormapb_hdvectormapb_generaterandom",
+      "community": 5,
+      "norm_label": ".generaterandom()"
+    },
+    {
+      "label": ".generateSeeded()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/HDVectorMapB.java",
+      "source_location": "L28",
+      "id": "vsa_hdvectormapb_hdvectormapb_generateseeded",
+      "community": 1,
+      "norm_label": ".generateseeded()"
+    },
+    {
+      "label": ".bundleSimultaneous()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/HDVectorMapB.java",
+      "source_location": "L37",
+      "id": "vsa_hdvectormapb_hdvectormapb_bundlesimultaneous",
+      "community": 5,
+      "norm_label": ".bundlesimultaneous()"
+    },
+    {
+      "label": ".bind()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/HDVectorMapB.java",
+      "source_location": "L62",
+      "id": "vsa_hdvectormapb_hdvectormapb_bind",
+      "community": 1,
+      "norm_label": ".bind()"
+    },
+    {
+      "label": ".bundle()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/HDVectorMapB.java",
+      "source_location": "L72",
+      "id": "vsa_hdvectormapb_hdvectormapb_bundle",
+      "community": 1,
+      "norm_label": ".bundle()"
+    },
+    {
+      "label": ".permute()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/HDVectorMapB.java",
+      "source_location": "L92",
+      "id": "vsa_hdvectormapb_hdvectormapb_permute",
+      "community": 1,
+      "norm_label": ".permute()"
+    },
+    {
+      "label": ".similarity()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/HDVectorMapB.java",
+      "source_location": "L103",
+      "id": "vsa_hdvectormapb_hdvectormapb_similarity",
+      "community": 1,
+      "norm_label": ".similarity()"
+    },
+    {
+      "label": "ItemMemory.java",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/ItemMemory.java",
+      "source_location": "L1",
+      "id": "main_java_com_investigator_vsa_itemmemory_java",
+      "community": 1,
+      "norm_label": "itemmemory.java"
+    },
+    {
+      "label": "ItemMemory",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/ItemMemory.java",
+      "source_location": "L9",
+      "id": "vsa_itemmemory_itemmemory",
+      "community": 2,
+      "norm_label": "itemmemory"
+    },
+    {
+      "label": ".ItemMemory()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/ItemMemory.java",
+      "source_location": "L30",
+      "id": "vsa_itemmemory_itemmemory_itemmemory",
+      "community": 2,
+      "norm_label": ".itemmemory()"
+    },
+    {
+      "label": ".getOrGenerate()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/ItemMemory.java",
+      "source_location": "L40",
+      "id": "vsa_itemmemory_itemmemory_getorgenerate",
+      "community": 2,
+      "norm_label": ".getorgenerate()"
+    },
+    {
+      "label": ".getAllVectors()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/ItemMemory.java",
+      "source_location": "L44",
+      "id": "vsa_itemmemory_itemmemory_getallvectors",
+      "community": 2,
+      "norm_label": ".getallvectors()"
+    },
+    {
+      "label": ".saveTreeVector()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/ItemMemory.java",
+      "source_location": "L49",
+      "id": "vsa_itemmemory_itemmemory_savetreevector",
+      "community": 2,
+      "norm_label": ".savetreevector()"
+    },
+    {
+      "label": ".getTreeVector()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/ItemMemory.java",
+      "source_location": "L53",
+      "id": "vsa_itemmemory_itemmemory_gettreevector",
+      "community": 2,
+      "norm_label": ".gettreevector()"
+    },
+    {
+      "label": ".saveChunkVector()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/ItemMemory.java",
+      "source_location": "L58",
+      "id": "vsa_itemmemory_itemmemory_savechunkvector",
+      "community": 2,
+      "norm_label": ".savechunkvector()"
+    },
+    {
+      "label": ".cleanUpChunk()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/ItemMemory.java",
+      "source_location": "L63",
+      "id": "vsa_itemmemory_itemmemory_cleanupchunk",
+      "community": 2,
+      "norm_label": ".cleanupchunk()"
+    },
+    {
+      "label": ".cleanUpRelative()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/ItemMemory.java",
+      "source_location": "L68",
+      "id": "vsa_itemmemory_itemmemory_cleanuprelative",
+      "community": 2,
+      "norm_label": ".cleanuprelative()"
+    },
+    {
+      "label": ".performStatisticalCleanUp()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/ItemMemory.java",
+      "source_location": "L73",
+      "id": "vsa_itemmemory_itemmemory_performstatisticalcleanup",
+      "community": 2,
+      "norm_label": ".performstatisticalcleanup()"
+    },
+    {
+      "label": ".getLastBestSigma()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/ItemMemory.java",
+      "source_location": "L116",
+      "id": "vsa_itemmemory_itemmemory_getlastbestsigma",
+      "community": 2,
+      "norm_label": ".getlastbestsigma()"
+    },
+    {
+      "label": ".getLastBestKey()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/ItemMemory.java",
+      "source_location": "L117",
+      "id": "vsa_itemmemory_itemmemory_getlastbestkey",
+      "community": 2,
+      "norm_label": ".getlastbestkey()"
+    },
+    {
+      "label": "RandomGenerationStrategy.java",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/strategy/RandomGenerationStrategy.java",
+      "source_location": "L1",
+      "id": "main_java_com_investigator_vsa_strategy_randomgenerationstrategy_java",
+      "community": 1,
+      "norm_label": "randomgenerationstrategy.java"
+    },
+    {
+      "label": "RandomGenerationStrategy",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/strategy/RandomGenerationStrategy.java",
+      "source_location": "L9",
+      "id": "strategy_randomgenerationstrategy_randomgenerationstrategy",
+      "community": 1,
+      "norm_label": "randomgenerationstrategy"
+    },
+    {
+      "label": ".generate()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/strategy/RandomGenerationStrategy.java",
+      "source_location": "L10",
+      "id": "strategy_randomgenerationstrategy_randomgenerationstrategy_generate",
+      "community": 1,
+      "norm_label": ".generate()"
+    },
+    {
+      "label": "SemanticEmbeddingStrategy.java",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/strategy/SemanticEmbeddingStrategy.java",
+      "source_location": "L1",
+      "id": "main_java_com_investigator_vsa_strategy_semanticembeddingstrategy_java",
+      "community": 1,
+      "norm_label": "semanticembeddingstrategy.java"
+    },
+    {
+      "label": "SemanticEmbeddingStrategy",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/strategy/SemanticEmbeddingStrategy.java",
+      "source_location": "L18",
+      "id": "strategy_semanticembeddingstrategy_semanticembeddingstrategy",
+      "community": 8,
+      "norm_label": "semanticembeddingstrategy"
+    },
+    {
+      "label": ".SemanticEmbeddingStrategy()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/strategy/SemanticEmbeddingStrategy.java",
+      "source_location": "L28",
+      "id": "strategy_semanticembeddingstrategy_semanticembeddingstrategy_semanticembeddingstrategy",
+      "community": 8,
+      "norm_label": ".semanticembeddingstrategy()"
+    },
+    {
+      "label": ".initializeProjectionMatrix()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/strategy/SemanticEmbeddingStrategy.java",
+      "source_location": "L38",
+      "id": "strategy_semanticembeddingstrategy_semanticembeddingstrategy_initializeprojectionmatrix",
+      "community": 8,
+      "norm_label": ".initializeprojectionmatrix()"
+    },
+    {
+      "label": ".generate()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/strategy/SemanticEmbeddingStrategy.java",
+      "source_location": "L47",
+      "id": "strategy_semanticembeddingstrategy_semanticembeddingstrategy_generate",
+      "community": 8,
+      "norm_label": ".generate()"
+    },
+    {
+      "label": ".binarize()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/strategy/SemanticEmbeddingStrategy.java",
+      "source_location": "L61",
+      "id": "strategy_semanticembeddingstrategy_semanticembeddingstrategy_binarize",
+      "community": 8,
+      "norm_label": ".binarize()"
+    },
+    {
+      "label": ".fetchDenseEmbedding()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/strategy/SemanticEmbeddingStrategy.java",
+      "source_location": "L78",
+      "id": "strategy_semanticembeddingstrategy_semanticembeddingstrategy_fetchdenseembedding",
+      "community": 8,
+      "norm_label": ".fetchdenseembedding()"
+    },
+    {
+      "label": ".cleanUriForEmbedding()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/strategy/SemanticEmbeddingStrategy.java",
+      "source_location": "L94",
+      "id": "strategy_semanticembeddingstrategy_semanticembeddingstrategy_cleanuriforembedding",
+      "community": 8,
+      "norm_label": ".cleanuriforembedding()"
+    },
+    {
+      "label": "TopologicalVectorUpdater.java",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/strategy/TopologicalVectorUpdater.java",
+      "source_location": "L1",
+      "id": "main_java_com_investigator_vsa_strategy_topologicalvectorupdater_java",
+      "community": 5,
+      "norm_label": "topologicalvectorupdater.java"
+    },
+    {
+      "label": "TopologicalVectorUpdater",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/strategy/TopologicalVectorUpdater.java",
+      "source_location": "L8",
+      "id": "strategy_topologicalvectorupdater_topologicalvectorupdater",
+      "community": 5,
+      "norm_label": "topologicalvectorupdater"
+    },
+    {
+      "label": ".applyTopologicalUpdate()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/strategy/TopologicalVectorUpdater.java",
+      "source_location": "L13",
+      "id": "strategy_topologicalvectorupdater_topologicalvectorupdater_applytopologicalupdate",
+      "community": 5,
+      "norm_label": ".applytopologicalupdate()"
+    },
+    {
+      "label": ".updateNodeVectorHierarchical()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/strategy/TopologicalVectorUpdater.java",
+      "source_location": "L21",
+      "id": "strategy_topologicalvectorupdater_topologicalvectorupdater_updatenodevectorhierarchical",
+      "community": 5,
+      "norm_label": ".updatenodevectorhierarchical()"
+    },
+    {
+      "label": ".buildSimpleChunk()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/strategy/TopologicalVectorUpdater.java",
+      "source_location": "L63",
+      "id": "strategy_topologicalvectorupdater_topologicalvectorupdater_buildsimplechunk",
+      "community": 5,
+      "norm_label": ".buildsimplechunk()"
+    },
+    {
+      "label": ".buildRecursiveSubTree()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/strategy/TopologicalVectorUpdater.java",
+      "source_location": "L76",
+      "id": "strategy_topologicalvectorupdater_topologicalvectorupdater_buildrecursivesubtree",
+      "community": 5,
+      "norm_label": ".buildrecursivesubtree()"
+    },
+    {
+      "label": ".encodeTriple()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/strategy/TopologicalVectorUpdater.java",
+      "source_location": "L89",
+      "id": "strategy_topologicalvectorupdater_topologicalvectorupdater_encodetriple",
+      "community": 5,
+      "norm_label": ".encodetriple()"
+    },
+    {
+      "label": "VectorGenerationStrategy.java",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/strategy/VectorGenerationStrategy.java",
+      "source_location": "L1",
+      "id": "main_java_com_investigator_vsa_strategy_vectorgenerationstrategy_java",
+      "community": 1,
+      "norm_label": "vectorgenerationstrategy.java"
+    },
+    {
+      "label": "VectorGenerationStrategy",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/strategy/VectorGenerationStrategy.java",
+      "source_location": "L5",
+      "id": "strategy_vectorgenerationstrategy_vectorgenerationstrategy",
+      "community": 1,
+      "norm_label": "vectorgenerationstrategy"
+    },
+    {
+      "label": ".generate()",
+      "file_type": "code",
+      "source_file": "main/java/com/investigator/vsa/strategy/VectorGenerationStrategy.java",
+      "source_location": "L6",
+      "id": "strategy_vectorgenerationstrategy_vectorgenerationstrategy_generate",
+      "community": 1,
+      "norm_label": ".generate()"
+    },
+    {
+      "label": "AppTest.java",
+      "file_type": "code",
+      "source_file": "test/java/com/investigator/AppTest.java",
+      "source_location": "L1",
+      "id": "test_java_com_investigator_apptest_java",
+      "community": 9,
+      "norm_label": "apptest.java"
+    },
+    {
+      "label": "AppTest",
+      "file_type": "code",
+      "source_file": "test/java/com/investigator/AppTest.java",
+      "source_location": "L10",
+      "id": "investigator_apptest_apptest",
+      "community": 9,
+      "norm_label": "apptest"
+    },
+    {
+      "label": ".shouldAnswerWithTrue()",
+      "file_type": "code",
+      "source_file": "test/java/com/investigator/AppTest.java",
+      "source_location": "L15",
+      "id": "investigator_apptest_apptest_shouldanswerwithtrue",
+      "community": 9,
+      "norm_label": ".shouldanswerwithtrue()"
+    },
+    {
+      "label": "HDVectorMapBTest.java",
+      "file_type": "code",
+      "source_file": "test/java/com/investigator/vsa/HDVectorMapBTest.java",
+      "source_location": "L1",
+      "id": "test_java_com_investigator_vsa_hdvectormapbtest_java",
+      "community": 10,
+      "norm_label": "hdvectormapbtest.java"
+    },
+    {
+      "label": "HDVectorMapBTest",
+      "file_type": "code",
+      "source_file": "test/java/com/investigator/vsa/HDVectorMapBTest.java",
+      "source_location": "L3",
+      "id": "vsa_hdvectormapbtest_hdvectormapbtest",
+      "community": 10,
+      "norm_label": "hdvectormapbtest"
+    },
+    {
+      "label": "App (Main Pipeline Entry Point)",
+      "file_type": "code",
+      "source_file": "src/main/java/com/investigator/App.java",
+      "source_location": "13: public class App",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "app_main",
+      "community": 0,
+      "norm_label": "app (main pipeline entry point)"
+    },
+    {
+      "label": "AppDis (Disambiguation Pipeline Entry Point)",
+      "file_type": "code",
+      "source_file": "src/main/java/com/investigator/AppDis.java",
+      "source_location": "13: public class AppDis",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "app_dis_main",
+      "community": 0,
+      "norm_label": "appdis (disambiguation pipeline entry point)"
+    },
+    {
+      "label": "InvestigationEngine (Orchestrator)",
+      "file_type": "code",
+      "source_file": "src/main/java/com/investigator/engine/InvestigationEngine.java",
+      "source_location": "12: public class InvestigationEngine",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "investigation_engine",
+      "community": 0,
+      "norm_label": "investigationengine (orchestrator)"
+    },
+    {
+      "label": "EntityResolver",
+      "file_type": "code",
+      "source_file": "src/main/java/com/investigator/jena/EntityResolver.java",
+      "source_location": "7: public class EntityResolver",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "entity_resolver",
+      "community": 0,
+      "norm_label": "entityresolver"
+    },
+    {
+      "label": "GraphManager",
+      "file_type": "code",
+      "source_file": "src/main/java/com/investigator/jena/GraphManager.java",
+      "source_location": "92: public class GraphManager",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "graph_manager",
+      "community": 0,
+      "norm_label": "graphmanager"
+    },
+    {
+      "label": "ResolvedEntity (Record)",
+      "file_type": "code",
+      "source_file": "src/main/java/com/investigator/jena/ResolvedEntity.java",
+      "source_location": "3: public record ResolvedEntity",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "resolved_entity",
+      "community": 0,
+      "norm_label": "resolvedentity (record)"
+    },
+    {
+      "label": "SparqlEndpoint",
+      "file_type": "code",
+      "source_file": "src/main/java/com/investigator/jena/SparqlEndpoint.java",
+      "source_location": "13: public class SparqlEndpoint",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "sparql_endpoint",
+      "community": 0,
+      "norm_label": "sparqlendpoint"
+    },
+    {
+      "label": "TripleExtractor (Bidirectional CONSTRUCT)",
+      "file_type": "code",
+      "source_file": "src/main/java/com/investigator/jena/TripleExtractor.java",
+      "source_location": "15: public class TripleExtractor",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "triple_extractor",
+      "community": 0,
+      "norm_label": "tripleextractor (bidirectional construct)"
+    },
+    {
+      "label": "OntologyTranslator (Semantic Bridge)",
+      "file_type": "code",
+      "source_file": "src/main/java/com/investigator/llm/OntologyTranslator.java",
+      "source_location": "13: public class OntologyTranslator",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "ontology_translator",
+      "community": 0,
+      "norm_label": "ontologytranslator (semantic bridge)"
+    },
+    {
+      "label": "HDVector (VSA Interface)",
+      "file_type": "code",
+      "source_file": "src/main/java/com/investigator/vsa/HDVector.java",
+      "source_location": "3: public interface HDVector",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "hdvector_interface",
+      "community": 0,
+      "norm_label": "hdvector (vsa interface)"
+    },
+    {
+      "label": "HDVectorMapB (MAP-B Implementation D=10000)",
+      "file_type": "code",
+      "source_file": "src/main/java/com/investigator/vsa/HDVectorMapB.java",
+      "source_location": "7: public class HDVectorMapB implements HDVector",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "hdvectormapb",
+      "community": 0,
+      "norm_label": "hdvectormapb (map-b implementation d=10000)"
+    },
+    {
+      "label": "ItemMemory (3-Tier Memory + Z-Score Clean-Up)",
+      "file_type": "code",
+      "source_file": "src/main/java/com/investigator/vsa/ItemMemory.java",
+      "source_location": "9: public class ItemMemory",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "item_memory",
+      "community": 0,
+      "norm_label": "itemmemory (3-tier memory + z-score clean-up)"
+    },
+    {
+      "label": "RandomGenerationStrategy (Deterministic URI\u2192Vector)",
+      "file_type": "code",
+      "source_file": "src/main/java/com/investigator/vsa/strategy/RandomGenerationStrategy.java",
+      "source_location": "9: public class RandomGenerationStrategy implements VectorGenerationStrategy",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "random_generation_strategy",
+      "community": 0,
+      "norm_label": "randomgenerationstrategy (deterministic uri\u2192vector)"
+    },
+    {
+      "label": "SemanticEmbeddingStrategy (MiniLM\u2192LSH\u2192Bipolar)",
+      "file_type": "code",
+      "source_file": "src/main/java/com/investigator/vsa/strategy/SemanticEmbeddingStrategy.java",
+      "source_location": "18: public class SemanticEmbeddingStrategy implements VectorGenerationStrategy",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Not enabled by default; RandomGenerationStrategy is simpler and fully deterministic. Semantic strategy would improve cross-domain resonance by generating vectors with higher cosine similarity for related entities, but the LSH projection matrix adds ~15MB memory overhead.",
+      "id": "semantic_embedding_strategy",
+      "community": 0,
+      "norm_label": "semanticembeddingstrategy (minilm\u2192lsh\u2192bipolar)"
+    },
+    {
+      "label": "TopologicalVectorUpdater (Simpkin Tree Builder)",
+      "file_type": "code",
+      "source_file": "src/main/java/com/investigator/vsa/strategy/TopologicalVectorUpdater.java",
+      "source_location": "8: public class TopologicalVectorUpdater",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "topological_vector_updater",
+      "community": 0,
+      "norm_label": "topologicalvectorupdater (simpkin tree builder)"
+    },
+    {
+      "label": "VectorGenerationStrategy (Interface)",
+      "file_type": "code",
+      "source_file": "src/main/java/com/investigator/vsa/strategy/VectorGenerationStrategy.java",
+      "source_location": "5: public interface VectorGenerationStrategy",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "vector_generation_strategy",
+      "community": 0,
+      "norm_label": "vectorgenerationstrategy (interface)"
+    },
+    {
+      "label": "AppTest (JUnit 4 Skeleton)",
+      "file_type": "code",
+      "source_file": "src/test/java/com/investigator/AppTest.java",
+      "source_location": "10: public class AppTest",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "app_test",
+      "community": 12,
+      "norm_label": "apptest (junit 4 skeleton)"
+    },
+    {
+      "label": "HDVectorMapBTest (Empty Skeleton)",
+      "file_type": "code",
+      "source_file": "src/test/java/com/investigator/vsa/HDVectorMapBTest.java",
+      "source_location": "3: public class HDVectorMapBTest",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "hdvectormapb_test",
+      "community": 13,
+      "norm_label": "hdvectormapbtest (empty skeleton)"
+    },
+    {
+      "label": "AGENTS_0.md (Build & Architecture Guide)",
+      "file_type": "document",
+      "source_file": "AGENTS_0.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "agents_0_doc",
+      "community": 0,
+      "norm_label": "agents_0.md (build & architecture guide)"
+    },
+    {
+      "label": "Description.md (Technical Description)",
+      "file_type": "document",
+      "source_file": "Description.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "description_doc",
+      "community": 0,
+      "norm_label": "description.md (technical description)"
+    },
+    {
+      "label": "PROJECT_REPORT.md (Architectural Report)",
+      "file_type": "document",
+      "source_file": "PROJECT_REPORT.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "project_report_doc",
+      "community": 0,
+      "norm_label": "project_report.md (architectural report)"
+    },
+    {
+      "label": "Simpkin Tree (Hierarchical Vector Encoding)",
+      "file_type": "document",
+      "source_file": "Description.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "simpkin_tree",
+      "community": 0,
+      "norm_label": "simpkin tree (hierarchical vector encoding)"
+    },
+    {
+      "label": "Holographic Bypass (Chunk Clean-Up Workaround)",
+      "file_type": "document",
+      "source_file": "PROJECT_REPORT.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Introduced because intermediate chunk clean-up (cleanUpChunk) fails when entities have 30-50 properties; the bundle noise from many branches degrades SNR below the 4.0\u03c3 Z-Score threshold at D=10000. Skipping the intermediate clean-up propagates residual noise to the final extraction, reducing overall accuracy.",
+      "id": "holographic_bypass",
+      "community": 0,
+      "norm_label": "holographic bypass (chunk clean-up workaround)"
+    },
+    {
+      "label": "VSA MAP-B Encoding Paradigm",
+      "file_type": "document",
+      "source_file": "Description.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "vsa_mapb_paradigm",
+      "community": 0,
+      "norm_label": "vsa map-b encoding paradigm"
+    },
+    {
+      "label": "Z-Score Statistical Clean-Up Mechanism",
+      "file_type": "document",
+      "source_file": "Description.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "zscore_cleanup",
+      "community": 0,
+      "norm_label": "z-score statistical clean-up mechanism"
+    },
+    {
+      "label": "all-MiniLM-L6-v2 Embedding Model (384-d)",
+      "file_type": "document",
+      "source_file": "Description.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "all_minilm_model",
+      "community": 0,
+      "norm_label": "all-minilm-l6-v2 embedding model (384-d)"
+    },
+    {
+      "label": "Wikidata Knowledge Graph",
+      "file_type": "document",
+      "source_file": "Description.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "wikidata_kg",
+      "community": 0,
+      "norm_label": "wikidata knowledge graph"
+    },
+    {
+      "label": "Structural Analogy Problem (A:B = C:D over Open-World KG)",
+      "file_type": "document",
+      "source_file": "Description.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "structural_analogy_problem",
+      "community": 0,
+      "norm_label": "structural analogy problem (a:b = c:d over open-world kg)"
+    }
+  ],
+  "links": [
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/App.java",
+      "source_location": "L13",
+      "weight": 1.0,
+      "source": "main_java_com_investigator_app_java",
+      "target": "investigator_app_app",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/App.java",
+      "source_location": "L14",
+      "weight": 1.0,
+      "source": "investigator_app_app",
+      "target": "investigator_app_app_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/App.java",
+      "source_location": "L231",
+      "weight": 1.0,
+      "source": "investigator_app_app",
+      "target": "investigator_app_app_fetchdescriptionfromwikidata",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/App.java",
+      "source_location": "L257",
+      "weight": 1.0,
+      "source": "investigator_app_app",
+      "target": "investigator_app_app_extractpropertylabels",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/App.java",
+      "source_location": "L297",
+      "weight": 1.0,
+      "source": "investigator_app_app",
+      "target": "investigator_app_app_fetchlabelfromwikidata",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/App.java",
+      "source_location": "L331",
+      "weight": 1.0,
+      "source": "investigator_app_app",
+      "target": "investigator_app_app_ismetadata",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/App.java",
+      "source_location": "L156",
+      "weight": 1.0,
+      "source": "investigator_app_app_main",
+      "target": "investigator_app_app_ismetadata",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/App.java",
+      "source_location": "L178",
+      "weight": 1.0,
+      "source": "investigator_app_app_main",
+      "target": "investigator_app_app_fetchlabelfromwikidata",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/App.java",
+      "source_location": "L186",
+      "weight": 1.0,
+      "source": "investigator_app_app_main",
+      "target": "investigator_app_app_extractpropertylabels",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "main/java/com/investigator/App.java",
+      "source_location": "L30",
+      "weight": 1.0,
+      "source": "investigator_app_app_main",
+      "target": "jena_entityresolver_entityresolver_resolve"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "main/java/com/investigator/App.java",
+      "source_location": "L112",
+      "weight": 1.0,
+      "source": "investigator_app_app_main",
+      "target": "llm_ontologytranslator_ontologytranslator_findsemanticequivalent"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "main/java/com/investigator/App.java",
+      "source_location": "L136",
+      "weight": 1.0,
+      "source": "investigator_app_app_main",
+      "target": "engine_investigationengine_investigationengine_expandandprocess"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "main/java/com/investigator/App.java",
+      "source_location": "L138",
+      "weight": 1.0,
+      "source": "investigator_app_app_main",
+      "target": "jena_graphmanager_graphmanager_getlocalmodel"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "main/java/com/investigator/App.java",
+      "source_location": "L138",
+      "weight": 1.0,
+      "source": "investigator_app_app_main",
+      "target": "engine_investigationengine_investigationengine_getgraphmanager"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "main/java/com/investigator/App.java",
+      "source_location": "L140",
+      "weight": 1.0,
+      "source": "investigator_app_app_main",
+      "target": "vsa_itemmemory_itemmemory_gettreevector"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "main/java/com/investigator/App.java",
+      "source_location": "L141",
+      "weight": 1.0,
+      "source": "investigator_app_app_main",
+      "target": "vsa_itemmemory_itemmemory_getorgenerate"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "main/java/com/investigator/App.java",
+      "source_location": "L160",
+      "weight": 1.0,
+      "source": "investigator_app_app_main",
+      "target": "vsa_itemmemory_itemmemory_cleanupchunk"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "main/java/com/investigator/App.java",
+      "source_location": "L215",
+      "weight": 1.0,
+      "source": "investigator_app_app_main",
+      "target": "vsa_itemmemory_itemmemory_cleanuprelative"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "main/java/com/investigator/App.java",
+      "source_location": "L222",
+      "weight": 1.0,
+      "source": "investigator_app_app_main",
+      "target": "vsa_itemmemory_itemmemory_getlastbestkey"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "main/java/com/investigator/App.java",
+      "source_location": "L225",
+      "weight": 1.0,
+      "source": "investigator_app_app_main",
+      "target": "vsa_itemmemory_itemmemory_getlastbestsigma"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/App.java",
+      "source_location": "L274",
+      "weight": 1.0,
+      "source": "investigator_app_app_extractpropertylabels",
+      "target": "investigator_app_app_ismetadata",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/App.java",
+      "source_location": "L276",
+      "weight": 1.0,
+      "source": "investigator_app_app_extractpropertylabels",
+      "target": "investigator_app_app_fetchlabelfromwikidata",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/AppDis.java",
+      "source_location": "L13",
+      "weight": 1.0,
+      "source": "main_java_com_investigator_appdis_java",
+      "target": "investigator_appdis_appdis",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/AppDis.java",
+      "source_location": "L14",
+      "weight": 1.0,
+      "source": "investigator_appdis_appdis",
+      "target": "investigator_appdis_appdis_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/AppDis.java",
+      "source_location": "L271",
+      "weight": 1.0,
+      "source": "investigator_appdis_appdis",
+      "target": "investigator_appdis_appdis_fetchdescriptionfromwikidata",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/AppDis.java",
+      "source_location": "L297",
+      "weight": 1.0,
+      "source": "investigator_appdis_appdis",
+      "target": "investigator_appdis_appdis_extractpropertylabels",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/AppDis.java",
+      "source_location": "L332",
+      "weight": 1.0,
+      "source": "investigator_appdis_appdis",
+      "target": "investigator_appdis_appdis_fetchlabelfromwikidata",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/AppDis.java",
+      "source_location": "L364",
+      "weight": 1.0,
+      "source": "investigator_appdis_appdis",
+      "target": "investigator_appdis_appdis_ismetadata",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/AppDis.java",
+      "source_location": "L149",
+      "weight": 1.0,
+      "source": "investigator_appdis_appdis_main",
+      "target": "investigator_appdis_appdis_ismetadata",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/AppDis.java",
+      "source_location": "L171",
+      "weight": 1.0,
+      "source": "investigator_appdis_appdis_main",
+      "target": "investigator_appdis_appdis_fetchlabelfromwikidata",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/AppDis.java",
+      "source_location": "L178",
+      "weight": 1.0,
+      "source": "investigator_appdis_appdis_main",
+      "target": "investigator_appdis_appdis_extractpropertylabels",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "main/java/com/investigator/AppDis.java",
+      "source_location": "L30",
+      "weight": 1.0,
+      "source": "investigator_appdis_appdis_main",
+      "target": "jena_entityresolver_entityresolver_resolve"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "main/java/com/investigator/AppDis.java",
+      "source_location": "L46",
+      "weight": 1.0,
+      "source": "investigator_appdis_appdis_main",
+      "target": "llm_ontologytranslator_ontologytranslator_disambiguatecandidates"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "main/java/com/investigator/AppDis.java",
+      "source_location": "L64",
+      "weight": 1.0,
+      "source": "investigator_appdis_appdis_main",
+      "target": "llm_ontologytranslator_ontologytranslator_areclassescompatible"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "main/java/com/investigator/AppDis.java",
+      "source_location": "L106",
+      "weight": 1.0,
+      "source": "investigator_appdis_appdis_main",
+      "target": "llm_ontologytranslator_ontologytranslator_findsemanticequivalent"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "main/java/com/investigator/AppDis.java",
+      "source_location": "L129",
+      "weight": 1.0,
+      "source": "investigator_appdis_appdis_main",
+      "target": "engine_investigationengine_investigationengine_expandandprocess"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "main/java/com/investigator/AppDis.java",
+      "source_location": "L131",
+      "weight": 1.0,
+      "source": "investigator_appdis_appdis_main",
+      "target": "jena_graphmanager_graphmanager_getlocalmodel"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "main/java/com/investigator/AppDis.java",
+      "source_location": "L131",
+      "weight": 1.0,
+      "source": "investigator_appdis_appdis_main",
+      "target": "engine_investigationengine_investigationengine_getgraphmanager"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "main/java/com/investigator/AppDis.java",
+      "source_location": "L133",
+      "weight": 1.0,
+      "source": "investigator_appdis_appdis_main",
+      "target": "vsa_itemmemory_itemmemory_gettreevector"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "main/java/com/investigator/AppDis.java",
+      "source_location": "L134",
+      "weight": 1.0,
+      "source": "investigator_appdis_appdis_main",
+      "target": "vsa_itemmemory_itemmemory_getorgenerate"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "main/java/com/investigator/AppDis.java",
+      "source_location": "L153",
+      "weight": 1.0,
+      "source": "investigator_appdis_appdis_main",
+      "target": "vsa_itemmemory_itemmemory_cleanupchunk"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "main/java/com/investigator/AppDis.java",
+      "source_location": "L241",
+      "weight": 1.0,
+      "source": "investigator_appdis_appdis_main",
+      "target": "vsa_itemmemory_itemmemory_getlastbestsigma"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "main/java/com/investigator/AppDis.java",
+      "source_location": "L254",
+      "weight": 1.0,
+      "source": "investigator_appdis_appdis_main",
+      "target": "vsa_itemmemory_itemmemory_cleanuprelative"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "main/java/com/investigator/AppDis.java",
+      "source_location": "L261",
+      "weight": 1.0,
+      "source": "investigator_appdis_appdis_main",
+      "target": "vsa_itemmemory_itemmemory_getlastbestkey"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/AppDis.java",
+      "source_location": "L310",
+      "weight": 1.0,
+      "source": "investigator_appdis_appdis_extractpropertylabels",
+      "target": "investigator_appdis_appdis_ismetadata",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/AppDis.java",
+      "source_location": "L312",
+      "weight": 1.0,
+      "source": "investigator_appdis_appdis_extractpropertylabels",
+      "target": "investigator_appdis_appdis_fetchlabelfromwikidata",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/engine/InvestigationEngine.java",
+      "source_location": "L12",
+      "weight": 1.0,
+      "source": "main_java_com_investigator_engine_investigationengine_java",
+      "target": "engine_investigationengine_investigationengine",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/engine/InvestigationEngine.java",
+      "source_location": "L32",
+      "weight": 1.0,
+      "source": "engine_investigationengine_investigationengine",
+      "target": "engine_investigationengine_investigationengine_investigationengine",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/engine/InvestigationEngine.java",
+      "source_location": "L39",
+      "weight": 1.0,
+      "source": "engine_investigationengine_investigationengine",
+      "target": "engine_investigationengine_investigationengine_processtriple",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/engine/InvestigationEngine.java",
+      "source_location": "L63",
+      "weight": 1.0,
+      "source": "engine_investigationengine_investigationengine",
+      "target": "engine_investigationengine_investigationengine_expandandprocess",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/engine/InvestigationEngine.java",
+      "source_location": "L89",
+      "weight": 1.0,
+      "source": "engine_investigationengine_investigationengine",
+      "target": "engine_investigationengine_investigationengine_getgraphmanager",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/engine/InvestigationEngine.java",
+      "source_location": "L93",
+      "weight": 1.0,
+      "source": "engine_investigationengine_investigationengine",
+      "target": "engine_investigationengine_investigationengine_getitemmemory",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/engine/InvestigationEngine.java",
+      "source_location": "L97",
+      "weight": 1.0,
+      "source": "engine_investigationengine_investigationengine",
+      "target": "engine_investigationengine_investigationengine_getnodevectors",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/engine/InvestigationEngine.java",
+      "source_location": "L101",
+      "weight": 1.0,
+      "source": "engine_investigationengine_investigationengine",
+      "target": "engine_investigationengine_investigationengine_gettriplevectors",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/engine/InvestigationEngine.java",
+      "source_location": "L105",
+      "weight": 1.0,
+      "source": "engine_investigationengine_investigationengine",
+      "target": "engine_investigationengine_investigationengine_clearextractedvectors",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/engine/InvestigationEngine.java",
+      "source_location": "L79",
+      "weight": 1.0,
+      "source": "engine_investigationengine_investigationengine_expandandprocess",
+      "target": "engine_investigationengine_investigationengine_processtriple",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "main/java/com/investigator/engine/InvestigationEngine.java",
+      "source_location": "L44",
+      "weight": 1.0,
+      "source": "engine_investigationengine_investigationengine_processtriple",
+      "target": "vsa_itemmemory_itemmemory_getorgenerate"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "main/java/com/investigator/engine/InvestigationEngine.java",
+      "source_location": "L67",
+      "weight": 1.0,
+      "source": "engine_investigationengine_investigationengine_expandandprocess",
+      "target": "jena_graphmanager_graphmanager_expandnodeoutgoing"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "main/java/com/investigator/engine/InvestigationEngine.java",
+      "source_location": "L68",
+      "weight": 1.0,
+      "source": "engine_investigationengine_investigationengine_expandandprocess",
+      "target": "jena_graphmanager_graphmanager_expandnodeincoming"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "main/java/com/investigator/engine/InvestigationEngine.java",
+      "source_location": "L70",
+      "weight": 1.0,
+      "source": "engine_investigationengine_investigationengine_expandandprocess",
+      "target": "jena_graphmanager_graphmanager_getlocalmodel"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "main/java/com/investigator/engine/InvestigationEngine.java",
+      "source_location": "L77",
+      "weight": 1.0,
+      "source": "engine_investigationengine_investigationengine_expandandprocess",
+      "target": "jena_graphmanager_graphmanager_getneighborhood"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "main/java/com/investigator/engine/InvestigationEngine.java",
+      "source_location": "L86",
+      "weight": 1.0,
+      "source": "engine_investigationengine_investigationengine_expandandprocess",
+      "target": "strategy_topologicalvectorupdater_topologicalvectorupdater_applytopologicalupdate"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/jena/EntityResolver.java",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "main_java_com_investigator_jena_entityresolver_java",
+      "target": "jena_entityresolver_entityresolver",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/jena/EntityResolver.java",
+      "source_location": "L33",
+      "weight": 1.0,
+      "source": "jena_entityresolver_entityresolver",
+      "target": "jena_entityresolver_entityresolver_resolve",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/jena/GraphManager.java",
+      "source_location": "L92",
+      "weight": 1.0,
+      "source": "main_java_com_investigator_jena_graphmanager_java",
+      "target": "jena_graphmanager_graphmanager",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/jena/GraphManager.java",
+      "source_location": "L97",
+      "weight": 1.0,
+      "source": "jena_graphmanager_graphmanager",
+      "target": "jena_graphmanager_graphmanager_graphmanager",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/jena/GraphManager.java",
+      "source_location": "L104",
+      "weight": 1.0,
+      "source": "jena_graphmanager_graphmanager",
+      "target": "jena_graphmanager_graphmanager_expandnode",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/jena/GraphManager.java",
+      "source_location": "L113",
+      "weight": 1.0,
+      "source": "jena_graphmanager_graphmanager",
+      "target": "jena_graphmanager_graphmanager_expandnodeoutgoing",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/jena/GraphManager.java",
+      "source_location": "L117",
+      "weight": 1.0,
+      "source": "jena_graphmanager_graphmanager",
+      "target": "jena_graphmanager_graphmanager_expandnodeincoming",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/jena/GraphManager.java",
+      "source_location": "L121",
+      "weight": 1.0,
+      "source": "jena_graphmanager_graphmanager",
+      "target": "jena_graphmanager_graphmanager_getneighborhood",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/jena/GraphManager.java",
+      "source_location": "L133",
+      "weight": 1.0,
+      "source": "jena_graphmanager_graphmanager",
+      "target": "jena_graphmanager_graphmanager_getunexplorednodes",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/jena/GraphManager.java",
+      "source_location": "L154",
+      "weight": 1.0,
+      "source": "jena_graphmanager_graphmanager",
+      "target": "jena_graphmanager_graphmanager_getlocalmodel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/jena/GraphManager.java",
+      "source_location": "L114",
+      "weight": 1.0,
+      "source": "jena_graphmanager_graphmanager_expandnodeoutgoing",
+      "target": "jena_graphmanager_graphmanager_expandnode",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/jena/GraphManager.java",
+      "source_location": "L118",
+      "weight": 1.0,
+      "source": "jena_graphmanager_graphmanager_expandnodeincoming",
+      "target": "jena_graphmanager_graphmanager_expandnode",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "main/java/com/investigator/jena/GraphManager.java",
+      "source_location": "L108",
+      "weight": 1.0,
+      "source": "jena_graphmanager_graphmanager_expandnode",
+      "target": "jena_tripleextractor_tripleextractor_extractbidirectional"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/jena/SparqlEndpoint.java",
+      "source_location": "L13",
+      "weight": 1.0,
+      "source": "main_java_com_investigator_jena_sparqlendpoint_java",
+      "target": "jena_sparqlendpoint_sparqlendpoint",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/jena/SparqlEndpoint.java",
+      "source_location": "L17",
+      "weight": 1.0,
+      "source": "jena_sparqlendpoint_sparqlendpoint",
+      "target": "jena_sparqlendpoint_sparqlendpoint_sparqlendpoint",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/jena/SparqlEndpoint.java",
+      "source_location": "L21",
+      "weight": 1.0,
+      "source": "jena_sparqlendpoint_sparqlendpoint",
+      "target": "jena_sparqlendpoint_sparqlendpoint_getendpointurl",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/jena/SparqlEndpoint.java",
+      "source_location": "L25",
+      "weight": 1.0,
+      "source": "jena_sparqlendpoint_sparqlendpoint",
+      "target": "jena_sparqlendpoint_sparqlendpoint_queryoutgoing",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/jena/SparqlEndpoint.java",
+      "source_location": "L33",
+      "weight": 1.0,
+      "source": "jena_sparqlendpoint_sparqlendpoint",
+      "target": "jena_sparqlendpoint_sparqlendpoint_queryincoming",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/jena/SparqlEndpoint.java",
+      "source_location": "L41",
+      "weight": 1.0,
+      "source": "jena_sparqlendpoint_sparqlendpoint",
+      "target": "jena_sparqlendpoint_sparqlendpoint_executeconstructquery",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/jena/SparqlEndpoint.java",
+      "source_location": "L30",
+      "weight": 1.0,
+      "source": "jena_sparqlendpoint_sparqlendpoint_queryoutgoing",
+      "target": "jena_sparqlendpoint_sparqlendpoint_executeconstructquery",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/jena/SparqlEndpoint.java",
+      "source_location": "L38",
+      "weight": 1.0,
+      "source": "jena_sparqlendpoint_sparqlendpoint_queryincoming",
+      "target": "jena_sparqlendpoint_sparqlendpoint_executeconstructquery",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/jena/TripleExtractor.java",
+      "source_location": "L15",
+      "weight": 1.0,
+      "source": "main_java_com_investigator_jena_tripleextractor_java",
+      "target": "jena_tripleextractor_tripleextractor",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/jena/TripleExtractor.java",
+      "source_location": "L69",
+      "weight": 1.0,
+      "source": "jena_tripleextractor_tripleextractor",
+      "target": "jena_tripleextractor_tripleextractor_extractbidirectional",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/llm/OntologyTranslator.java",
+      "source_location": "L13",
+      "weight": 1.0,
+      "source": "main_java_com_investigator_llm_ontologytranslator_java",
+      "target": "llm_ontologytranslator_ontologytranslator",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/llm/OntologyTranslator.java",
+      "source_location": "L18",
+      "weight": 1.0,
+      "source": "llm_ontologytranslator_ontologytranslator",
+      "target": "llm_ontologytranslator_ontologytranslator_ontologytranslator",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/llm/OntologyTranslator.java",
+      "source_location": "L26",
+      "weight": 1.0,
+      "source": "llm_ontologytranslator_ontologytranslator",
+      "target": "llm_ontologytranslator_ontologytranslator_enrichlabelswithexpectedtypes",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/llm/OntologyTranslator.java",
+      "source_location": "L47",
+      "weight": 1.0,
+      "source": "llm_ontologytranslator_ontologytranslator",
+      "target": "llm_ontologytranslator_ontologytranslator_batchfetchexpectedtypes",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/llm/OntologyTranslator.java",
+      "source_location": "L114",
+      "weight": 1.0,
+      "source": "llm_ontologytranslator_ontologytranslator",
+      "target": "llm_ontologytranslator_ontologytranslator_findsemanticequivalent",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/llm/OntologyTranslator.java",
+      "source_location": "L168",
+      "weight": 1.0,
+      "source": "llm_ontologytranslator_ontologytranslator",
+      "target": "llm_ontologytranslator_ontologytranslator_areclassescompatible",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/llm/OntologyTranslator.java",
+      "source_location": "L178",
+      "weight": 1.0,
+      "source": "llm_ontologytranslator_ontologytranslator",
+      "target": "llm_ontologytranslator_ontologytranslator_disambiguatecandidates",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/llm/OntologyTranslator.java",
+      "source_location": "L28",
+      "weight": 1.0,
+      "source": "llm_ontologytranslator_ontologytranslator_enrichlabelswithexpectedtypes",
+      "target": "llm_ontologytranslator_ontologytranslator_batchfetchexpectedtypes",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/llm/OntologyTranslator.java",
+      "source_location": "L119",
+      "weight": 1.0,
+      "source": "llm_ontologytranslator_ontologytranslator_findsemanticequivalent",
+      "target": "llm_ontologytranslator_ontologytranslator_batchfetchexpectedtypes",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/HDVector.java",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "main_java_com_investigator_vsa_hdvector_java",
+      "target": "vsa_hdvector_hdvector",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/HDVector.java",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "vsa_hdvector_hdvector",
+      "target": "vsa_hdvector_hdvector_bind",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/HDVector.java",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "vsa_hdvector_hdvector",
+      "target": "vsa_hdvector_hdvector_bundle",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/HDVector.java",
+      "source_location": "L6",
+      "weight": 1.0,
+      "source": "vsa_hdvector_hdvector",
+      "target": "vsa_hdvector_hdvector_permute",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/HDVector.java",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "vsa_hdvector_hdvector",
+      "target": "vsa_hdvector_hdvector_similarity",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/HDVectorMapB.java",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "vsa_hdvectormapb_hdvectormapb",
+      "target": "vsa_hdvector_hdvector",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/strategy/RandomGenerationStrategy.java",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "main_java_com_investigator_vsa_strategy_randomgenerationstrategy_java",
+      "target": "vsa_hdvector_hdvector",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/strategy/SemanticEmbeddingStrategy.java",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "main_java_com_investigator_vsa_strategy_semanticembeddingstrategy_java",
+      "target": "vsa_hdvector_hdvector",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/strategy/VectorGenerationStrategy.java",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "main_java_com_investigator_vsa_strategy_vectorgenerationstrategy_java",
+      "target": "vsa_hdvector_hdvector",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/HDVectorMapB.java",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "main_java_com_investigator_vsa_hdvectormapb_java",
+      "target": "vsa_hdvectormapb_hdvectormapb",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/HDVectorMapB.java",
+      "source_location": "L15",
+      "weight": 1.0,
+      "source": "vsa_hdvectormapb_hdvectormapb",
+      "target": "vsa_hdvectormapb_hdvectormapb_hdvectormapb",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/HDVectorMapB.java",
+      "source_location": "L19",
+      "weight": 1.0,
+      "source": "vsa_hdvectormapb_hdvectormapb",
+      "target": "vsa_hdvectormapb_hdvectormapb_generaterandom",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/HDVectorMapB.java",
+      "source_location": "L28",
+      "weight": 1.0,
+      "source": "vsa_hdvectormapb_hdvectormapb",
+      "target": "vsa_hdvectormapb_hdvectormapb_generateseeded",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/HDVectorMapB.java",
+      "source_location": "L37",
+      "weight": 1.0,
+      "source": "vsa_hdvectormapb_hdvectormapb",
+      "target": "vsa_hdvectormapb_hdvectormapb_bundlesimultaneous",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/HDVectorMapB.java",
+      "source_location": "L62",
+      "weight": 1.0,
+      "source": "vsa_hdvectormapb_hdvectormapb",
+      "target": "vsa_hdvectormapb_hdvectormapb_bind",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/HDVectorMapB.java",
+      "source_location": "L72",
+      "weight": 1.0,
+      "source": "vsa_hdvectormapb_hdvectormapb",
+      "target": "vsa_hdvectormapb_hdvectormapb_bundle",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/HDVectorMapB.java",
+      "source_location": "L92",
+      "weight": 1.0,
+      "source": "vsa_hdvectormapb_hdvectormapb",
+      "target": "vsa_hdvectormapb_hdvectormapb_permute",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/HDVectorMapB.java",
+      "source_location": "L103",
+      "weight": 1.0,
+      "source": "vsa_hdvectormapb_hdvectormapb",
+      "target": "vsa_hdvectormapb_hdvectormapb_similarity",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "main/java/com/investigator/vsa/strategy/TopologicalVectorUpdater.java",
+      "source_location": "L72",
+      "weight": 1.0,
+      "source": "strategy_topologicalvectorupdater_topologicalvectorupdater_buildsimplechunk",
+      "target": "vsa_hdvectormapb_hdvectormapb_generaterandom"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "main/java/com/investigator/vsa/strategy/TopologicalVectorUpdater.java",
+      "source_location": "L85",
+      "weight": 1.0,
+      "source": "strategy_topologicalvectorupdater_topologicalvectorupdater_buildrecursivesubtree",
+      "target": "vsa_hdvectormapb_hdvectormapb_generaterandom"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "main/java/com/investigator/vsa/strategy/RandomGenerationStrategy.java",
+      "source_location": "L13",
+      "weight": 1.0,
+      "source": "strategy_randomgenerationstrategy_randomgenerationstrategy_generate",
+      "target": "vsa_hdvectormapb_hdvectormapb_generateseeded"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "main/java/com/investigator/vsa/strategy/TopologicalVectorUpdater.java",
+      "source_location": "L59",
+      "weight": 1.0,
+      "source": "strategy_topologicalvectorupdater_topologicalvectorupdater_updatenodevectorhierarchical",
+      "target": "vsa_hdvectormapb_hdvectormapb_bundlesimultaneous"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "main/java/com/investigator/vsa/strategy/TopologicalVectorUpdater.java",
+      "source_location": "L73",
+      "weight": 1.0,
+      "source": "strategy_topologicalvectorupdater_topologicalvectorupdater_buildsimplechunk",
+      "target": "vsa_hdvectormapb_hdvectormapb_bundlesimultaneous"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "main/java/com/investigator/vsa/strategy/TopologicalVectorUpdater.java",
+      "source_location": "L86",
+      "weight": 1.0,
+      "source": "strategy_topologicalvectorupdater_topologicalvectorupdater_buildrecursivesubtree",
+      "target": "vsa_hdvectormapb_hdvectormapb_bundlesimultaneous"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/ItemMemory.java",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "main_java_com_investigator_vsa_itemmemory_java",
+      "target": "strategy_vectorgenerationstrategy_vectorgenerationstrategy",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/ItemMemory.java",
+      "source_location": "L9",
+      "weight": 1.0,
+      "source": "main_java_com_investigator_vsa_itemmemory_java",
+      "target": "vsa_itemmemory_itemmemory",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/ItemMemory.java",
+      "source_location": "L30",
+      "weight": 1.0,
+      "source": "vsa_itemmemory_itemmemory",
+      "target": "vsa_itemmemory_itemmemory_itemmemory",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/ItemMemory.java",
+      "source_location": "L40",
+      "weight": 1.0,
+      "source": "vsa_itemmemory_itemmemory",
+      "target": "vsa_itemmemory_itemmemory_getorgenerate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/ItemMemory.java",
+      "source_location": "L44",
+      "weight": 1.0,
+      "source": "vsa_itemmemory_itemmemory",
+      "target": "vsa_itemmemory_itemmemory_getallvectors",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/ItemMemory.java",
+      "source_location": "L49",
+      "weight": 1.0,
+      "source": "vsa_itemmemory_itemmemory",
+      "target": "vsa_itemmemory_itemmemory_savetreevector",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/ItemMemory.java",
+      "source_location": "L53",
+      "weight": 1.0,
+      "source": "vsa_itemmemory_itemmemory",
+      "target": "vsa_itemmemory_itemmemory_gettreevector",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/ItemMemory.java",
+      "source_location": "L58",
+      "weight": 1.0,
+      "source": "vsa_itemmemory_itemmemory",
+      "target": "vsa_itemmemory_itemmemory_savechunkvector",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/ItemMemory.java",
+      "source_location": "L63",
+      "weight": 1.0,
+      "source": "vsa_itemmemory_itemmemory",
+      "target": "vsa_itemmemory_itemmemory_cleanupchunk",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/ItemMemory.java",
+      "source_location": "L68",
+      "weight": 1.0,
+      "source": "vsa_itemmemory_itemmemory",
+      "target": "vsa_itemmemory_itemmemory_cleanuprelative",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/ItemMemory.java",
+      "source_location": "L73",
+      "weight": 1.0,
+      "source": "vsa_itemmemory_itemmemory",
+      "target": "vsa_itemmemory_itemmemory_performstatisticalcleanup",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/ItemMemory.java",
+      "source_location": "L116",
+      "weight": 1.0,
+      "source": "vsa_itemmemory_itemmemory",
+      "target": "vsa_itemmemory_itemmemory_getlastbestsigma",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/ItemMemory.java",
+      "source_location": "L117",
+      "weight": 1.0,
+      "source": "vsa_itemmemory_itemmemory",
+      "target": "vsa_itemmemory_itemmemory_getlastbestkey",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/ItemMemory.java",
+      "source_location": "L54",
+      "weight": 1.0,
+      "source": "vsa_itemmemory_itemmemory_gettreevector",
+      "target": "vsa_itemmemory_itemmemory_getorgenerate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "main/java/com/investigator/vsa/strategy/TopologicalVectorUpdater.java",
+      "source_location": "L23",
+      "weight": 1.0,
+      "source": "strategy_topologicalvectorupdater_topologicalvectorupdater_updatenodevectorhierarchical",
+      "target": "vsa_itemmemory_itemmemory_getorgenerate"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "main/java/com/investigator/vsa/strategy/TopologicalVectorUpdater.java",
+      "source_location": "L70",
+      "weight": 1.0,
+      "source": "strategy_topologicalvectorupdater_topologicalvectorupdater_buildsimplechunk",
+      "target": "vsa_itemmemory_itemmemory_getorgenerate"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "main/java/com/investigator/vsa/strategy/TopologicalVectorUpdater.java",
+      "source_location": "L90",
+      "weight": 1.0,
+      "source": "strategy_topologicalvectorupdater_topologicalvectorupdater_encodetriple",
+      "target": "vsa_itemmemory_itemmemory_getorgenerate"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "main/java/com/investigator/vsa/strategy/TopologicalVectorUpdater.java",
+      "source_location": "L60",
+      "weight": 1.0,
+      "source": "strategy_topologicalvectorupdater_topologicalvectorupdater_updatenodevectorhierarchical",
+      "target": "vsa_itemmemory_itemmemory_savetreevector"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "main/java/com/investigator/vsa/strategy/TopologicalVectorUpdater.java",
+      "source_location": "L44",
+      "weight": 1.0,
+      "source": "strategy_topologicalvectorupdater_topologicalvectorupdater_updatenodevectorhierarchical",
+      "target": "vsa_itemmemory_itemmemory_savechunkvector"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/ItemMemory.java",
+      "source_location": "L64",
+      "weight": 1.0,
+      "source": "vsa_itemmemory_itemmemory_cleanupchunk",
+      "target": "vsa_itemmemory_itemmemory_performstatisticalcleanup",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/ItemMemory.java",
+      "source_location": "L69",
+      "weight": 1.0,
+      "source": "vsa_itemmemory_itemmemory_cleanuprelative",
+      "target": "vsa_itemmemory_itemmemory_performstatisticalcleanup",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/strategy/RandomGenerationStrategy.java",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "main_java_com_investigator_vsa_strategy_randomgenerationstrategy_java",
+      "target": "hdvectormapb",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/strategy/RandomGenerationStrategy.java",
+      "source_location": "L9",
+      "weight": 1.0,
+      "source": "main_java_com_investigator_vsa_strategy_randomgenerationstrategy_java",
+      "target": "strategy_randomgenerationstrategy_randomgenerationstrategy",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/strategy/RandomGenerationStrategy.java",
+      "source_location": "L9",
+      "weight": 1.0,
+      "source": "strategy_randomgenerationstrategy_randomgenerationstrategy",
+      "target": "strategy_vectorgenerationstrategy_vectorgenerationstrategy",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/strategy/RandomGenerationStrategy.java",
+      "source_location": "L10",
+      "weight": 1.0,
+      "source": "strategy_randomgenerationstrategy_randomgenerationstrategy",
+      "target": "strategy_randomgenerationstrategy_randomgenerationstrategy_generate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/strategy/SemanticEmbeddingStrategy.java",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "main_java_com_investigator_vsa_strategy_semanticembeddingstrategy_java",
+      "target": "hdvectormapb",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/strategy/SemanticEmbeddingStrategy.java",
+      "source_location": "L18",
+      "weight": 1.0,
+      "source": "main_java_com_investigator_vsa_strategy_semanticembeddingstrategy_java",
+      "target": "strategy_semanticembeddingstrategy_semanticembeddingstrategy",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/strategy/SemanticEmbeddingStrategy.java",
+      "source_location": "L18",
+      "weight": 1.0,
+      "source": "strategy_semanticembeddingstrategy_semanticembeddingstrategy",
+      "target": "strategy_vectorgenerationstrategy_vectorgenerationstrategy",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/strategy/SemanticEmbeddingStrategy.java",
+      "source_location": "L28",
+      "weight": 1.0,
+      "source": "strategy_semanticembeddingstrategy_semanticembeddingstrategy",
+      "target": "strategy_semanticembeddingstrategy_semanticembeddingstrategy_semanticembeddingstrategy",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/strategy/SemanticEmbeddingStrategy.java",
+      "source_location": "L38",
+      "weight": 1.0,
+      "source": "strategy_semanticembeddingstrategy_semanticembeddingstrategy",
+      "target": "strategy_semanticembeddingstrategy_semanticembeddingstrategy_initializeprojectionmatrix",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/strategy/SemanticEmbeddingStrategy.java",
+      "source_location": "L47",
+      "weight": 1.0,
+      "source": "strategy_semanticembeddingstrategy_semanticembeddingstrategy",
+      "target": "strategy_semanticembeddingstrategy_semanticembeddingstrategy_generate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/strategy/SemanticEmbeddingStrategy.java",
+      "source_location": "L61",
+      "weight": 1.0,
+      "source": "strategy_semanticembeddingstrategy_semanticembeddingstrategy",
+      "target": "strategy_semanticembeddingstrategy_semanticembeddingstrategy_binarize",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/strategy/SemanticEmbeddingStrategy.java",
+      "source_location": "L78",
+      "weight": 1.0,
+      "source": "strategy_semanticembeddingstrategy_semanticembeddingstrategy",
+      "target": "strategy_semanticembeddingstrategy_semanticembeddingstrategy_fetchdenseembedding",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/strategy/SemanticEmbeddingStrategy.java",
+      "source_location": "L94",
+      "weight": 1.0,
+      "source": "strategy_semanticembeddingstrategy_semanticembeddingstrategy",
+      "target": "strategy_semanticembeddingstrategy_semanticembeddingstrategy_cleanuriforembedding",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/strategy/SemanticEmbeddingStrategy.java",
+      "source_location": "L35",
+      "weight": 1.0,
+      "source": "strategy_semanticembeddingstrategy_semanticembeddingstrategy_semanticembeddingstrategy",
+      "target": "strategy_semanticembeddingstrategy_semanticembeddingstrategy_initializeprojectionmatrix",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/strategy/SemanticEmbeddingStrategy.java",
+      "source_location": "L52",
+      "weight": 1.0,
+      "source": "strategy_semanticembeddingstrategy_semanticembeddingstrategy_generate",
+      "target": "strategy_semanticembeddingstrategy_semanticembeddingstrategy_cleanuriforembedding",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/strategy/SemanticEmbeddingStrategy.java",
+      "source_location": "L55",
+      "weight": 1.0,
+      "source": "strategy_semanticembeddingstrategy_semanticembeddingstrategy_generate",
+      "target": "strategy_semanticembeddingstrategy_semanticembeddingstrategy_fetchdenseembedding",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/strategy/SemanticEmbeddingStrategy.java",
+      "source_location": "L58",
+      "weight": 1.0,
+      "source": "strategy_semanticembeddingstrategy_semanticembeddingstrategy_generate",
+      "target": "strategy_semanticembeddingstrategy_semanticembeddingstrategy_binarize",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/strategy/TopologicalVectorUpdater.java",
+      "source_location": "L8",
+      "weight": 1.0,
+      "source": "main_java_com_investigator_vsa_strategy_topologicalvectorupdater_java",
+      "target": "strategy_topologicalvectorupdater_topologicalvectorupdater",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/strategy/TopologicalVectorUpdater.java",
+      "source_location": "L13",
+      "weight": 1.0,
+      "source": "strategy_topologicalvectorupdater_topologicalvectorupdater",
+      "target": "strategy_topologicalvectorupdater_topologicalvectorupdater_applytopologicalupdate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/strategy/TopologicalVectorUpdater.java",
+      "source_location": "L21",
+      "weight": 1.0,
+      "source": "strategy_topologicalvectorupdater_topologicalvectorupdater",
+      "target": "strategy_topologicalvectorupdater_topologicalvectorupdater_updatenodevectorhierarchical",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/strategy/TopologicalVectorUpdater.java",
+      "source_location": "L63",
+      "weight": 1.0,
+      "source": "strategy_topologicalvectorupdater_topologicalvectorupdater",
+      "target": "strategy_topologicalvectorupdater_topologicalvectorupdater_buildsimplechunk",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/strategy/TopologicalVectorUpdater.java",
+      "source_location": "L76",
+      "weight": 1.0,
+      "source": "strategy_topologicalvectorupdater_topologicalvectorupdater",
+      "target": "strategy_topologicalvectorupdater_topologicalvectorupdater_buildrecursivesubtree",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/strategy/TopologicalVectorUpdater.java",
+      "source_location": "L89",
+      "weight": 1.0,
+      "source": "strategy_topologicalvectorupdater_topologicalvectorupdater",
+      "target": "strategy_topologicalvectorupdater_topologicalvectorupdater_encodetriple",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/strategy/TopologicalVectorUpdater.java",
+      "source_location": "L16",
+      "weight": 1.0,
+      "source": "strategy_topologicalvectorupdater_topologicalvectorupdater_applytopologicalupdate",
+      "target": "strategy_topologicalvectorupdater_topologicalvectorupdater_updatenodevectorhierarchical",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/strategy/TopologicalVectorUpdater.java",
+      "source_location": "L38",
+      "weight": 1.0,
+      "source": "strategy_topologicalvectorupdater_topologicalvectorupdater_updatenodevectorhierarchical",
+      "target": "strategy_topologicalvectorupdater_topologicalvectorupdater_buildsimplechunk",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/strategy/TopologicalVectorUpdater.java",
+      "source_location": "L39",
+      "weight": 1.0,
+      "source": "strategy_topologicalvectorupdater_topologicalvectorupdater_updatenodevectorhierarchical",
+      "target": "strategy_topologicalvectorupdater_topologicalvectorupdater_buildrecursivesubtree",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/strategy/TopologicalVectorUpdater.java",
+      "source_location": "L66",
+      "weight": 1.0,
+      "source": "strategy_topologicalvectorupdater_topologicalvectorupdater_buildsimplechunk",
+      "target": "strategy_topologicalvectorupdater_topologicalvectorupdater_encodetriple",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/strategy/TopologicalVectorUpdater.java",
+      "source_location": "L82",
+      "weight": 1.0,
+      "source": "strategy_topologicalvectorupdater_topologicalvectorupdater_buildrecursivesubtree",
+      "target": "strategy_topologicalvectorupdater_topologicalvectorupdater_buildsimplechunk",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/strategy/VectorGenerationStrategy.java",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "main_java_com_investigator_vsa_strategy_vectorgenerationstrategy_java",
+      "target": "strategy_vectorgenerationstrategy_vectorgenerationstrategy",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "main/java/com/investigator/vsa/strategy/VectorGenerationStrategy.java",
+      "source_location": "L6",
+      "weight": 1.0,
+      "source": "strategy_vectorgenerationstrategy_vectorgenerationstrategy",
+      "target": "strategy_vectorgenerationstrategy_vectorgenerationstrategy_generate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "test/java/com/investigator/AppTest.java",
+      "source_location": "L10",
+      "weight": 1.0,
+      "source": "test_java_com_investigator_apptest_java",
+      "target": "investigator_apptest_apptest",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "test/java/com/investigator/AppTest.java",
+      "source_location": "L15",
+      "weight": 1.0,
+      "source": "investigator_apptest_apptest",
+      "target": "investigator_apptest_apptest_shouldanswerwithtrue",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "test/java/com/investigator/vsa/HDVectorMapBTest.java",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "test_java_com_investigator_vsa_hdvectormapbtest_java",
+      "target": "vsa_hdvectormapbtest_hdvectormapbtest",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/main/java/com/investigator/App.java",
+      "source_location": "30-36",
+      "weight": 1.0,
+      "source": "app_main",
+      "target": "entity_resolver"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/main/java/com/investigator/App.java",
+      "source_location": "112",
+      "weight": 1.0,
+      "source": "app_main",
+      "target": "ontology_translator"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/main/java/com/investigator/App.java",
+      "source_location": "130",
+      "weight": 1.0,
+      "source": "app_main",
+      "target": "investigation_engine"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/main/java/com/investigator/App.java",
+      "source_location": "140-141,150,155,158-164",
+      "weight": 1.0,
+      "source": "app_main",
+      "target": "item_memory"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/main/java/com/investigator/App.java",
+      "source_location": "159",
+      "weight": 1.0,
+      "source": "app_main",
+      "target": "hdvectormapb"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "AGENTS_0.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "agents_0_doc",
+      "target": "app_main"
+    },
+    {
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "AGENTS_0.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "app_main",
+      "target": "app_dis_main"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "Description.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "structural_analogy_problem",
+      "target": "app_main"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/main/java/com/investigator/App.java",
+      "source_location": "22,138",
+      "weight": 1.0,
+      "source": "app_main",
+      "target": "graph_manager"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/main/java/com/investigator/AppDis.java",
+      "source_location": "30-34",
+      "weight": 1.0,
+      "source": "app_dis_main",
+      "target": "entity_resolver"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/main/java/com/investigator/AppDis.java",
+      "source_location": "46,64,106,211",
+      "weight": 1.0,
+      "source": "app_dis_main",
+      "target": "ontology_translator"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/main/java/com/investigator/AppDis.java",
+      "source_location": "123",
+      "weight": 1.0,
+      "source": "app_dis_main",
+      "target": "investigation_engine"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/main/java/com/investigator/AppDis.java",
+      "source_location": "133-134,143,151-163",
+      "weight": 1.0,
+      "source": "app_dis_main",
+      "target": "item_memory"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "AGENTS_0.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "agents_0_doc",
+      "target": "app_dis_main"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "Description.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "structural_analogy_problem",
+      "target": "app_dis_main"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/main/java/com/investigator/AppDis.java",
+      "source_location": "22,131",
+      "weight": 1.0,
+      "source": "app_dis_main",
+      "target": "graph_manager"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "src/main/java/com/investigator/engine/InvestigationEngine.java",
+      "source_location": "14",
+      "weight": 1.0,
+      "source": "investigation_engine",
+      "target": "graph_manager"
+    },
+    {
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "Description.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "investigation_engine",
+      "target": "topological_vector_updater"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "src/main/java/com/investigator/engine/InvestigationEngine.java",
+      "source_location": "13",
+      "weight": 1.0,
+      "source": "investigation_engine",
+      "target": "item_memory"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "Description.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "structural_analogy_problem",
+      "target": "investigation_engine"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/main/java/com/investigator/jena/EntityResolver.java",
+      "source_location": "65",
+      "weight": 1.0,
+      "source": "entity_resolver",
+      "target": "resolved_entity"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "AGENTS_0.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "entity_resolver",
+      "target": "sparql_endpoint"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "Description.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "wikidata_kg",
+      "target": "entity_resolver"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/main/java/com/investigator/jena/GraphManager.java",
+      "source_location": "108",
+      "weight": 1.0,
+      "source": "graph_manager",
+      "target": "triple_extractor"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "src/main/java/com/investigator/jena/GraphManager.java",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "graph_manager",
+      "target": "sparql_endpoint"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/main/java/com/investigator/llm/OntologyTranslator.java",
+      "source_location": "178,191,202",
+      "weight": 1.0,
+      "source": "ontology_translator",
+      "target": "resolved_entity"
+    },
+    {
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "AGENTS_0.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "sparql_endpoint",
+      "target": "triple_extractor"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "Description.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "wikidata_kg",
+      "target": "triple_extractor"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/main/java/com/investigator/llm/OntologyTranslator.java",
+      "source_location": "19,131,143,170-171",
+      "weight": 1.0,
+      "source": "ontology_translator",
+      "target": "all_minilm_model"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "Description.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "description_doc",
+      "target": "ontology_translator"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "Description.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "ontology_translator",
+      "target": "semantic_embedding_strategy"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "Description.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "ontology_translator",
+      "target": "random_generation_strategy"
+    },
+    {
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/main/java/com/investigator/vsa/HDVectorMapB.java",
+      "source_location": "7",
+      "weight": 1.0,
+      "source": "hdvectormapb",
+      "target": "hdvector_interface"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/main/java/com/investigator/vsa/strategy/RandomGenerationStrategy.java",
+      "source_location": "13",
+      "weight": 1.0,
+      "source": "random_generation_strategy",
+      "target": "hdvectormapb"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/main/java/com/investigator/vsa/strategy/TopologicalVectorUpdater.java",
+      "source_location": "59,72,86",
+      "weight": 1.0,
+      "source": "topological_vector_updater",
+      "target": "hdvectormapb"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/main/java/com/investigator/vsa/ItemMemory.java",
+      "source_location": "35",
+      "weight": 1.0,
+      "source": "item_memory",
+      "target": "hdvectormapb"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "PROJECT_REPORT.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "project_report_doc",
+      "target": "hdvectormapb"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "Description.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "vsa_mapb_paradigm",
+      "target": "hdvectormapb"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "Description.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "simpkin_tree",
+      "target": "hdvectormapb"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/main/java/com/investigator/vsa/strategy/SemanticEmbeddingStrategy.java",
+      "source_location": "75",
+      "weight": 1.0,
+      "source": "semantic_embedding_strategy",
+      "target": "hdvectormapb"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "Description.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "item_memory",
+      "target": "topological_vector_updater"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/main/java/com/investigator/vsa/ItemMemory.java",
+      "source_location": "41",
+      "weight": 1.0,
+      "source": "item_memory",
+      "target": "vector_generation_strategy"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "PROJECT_REPORT.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "project_report_doc",
+      "target": "item_memory"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "Description.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "zscore_cleanup",
+      "target": "item_memory"
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "PROJECT_REPORT.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "holographic_bypass",
+      "target": "item_memory"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "Description.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "simpkin_tree",
+      "target": "item_memory"
+    },
+    {
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/main/java/com/investigator/vsa/strategy/RandomGenerationStrategy.java",
+      "source_location": "9",
+      "weight": 1.0,
+      "source": "random_generation_strategy",
+      "target": "vector_generation_strategy"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "Description.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "description_doc",
+      "target": "random_generation_strategy"
+    },
+    {
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "Description.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "random_generation_strategy",
+      "target": "semantic_embedding_strategy"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/main/java/com/investigator/vsa/strategy/SemanticEmbeddingStrategy.java",
+      "source_location": "30,86",
+      "weight": 1.0,
+      "source": "semantic_embedding_strategy",
+      "target": "all_minilm_model"
+    },
+    {
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/main/java/com/investigator/vsa/strategy/SemanticEmbeddingStrategy.java",
+      "source_location": "18",
+      "weight": 1.0,
+      "source": "semantic_embedding_strategy",
+      "target": "vector_generation_strategy"
+    },
+    {
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "PROJECT_REPORT.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "project_report_doc",
+      "target": "semantic_embedding_strategy"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "PROJECT_REPORT.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "project_report_doc",
+      "target": "topological_vector_updater"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "Description.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "description_doc",
+      "target": "topological_vector_updater"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "Description.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "simpkin_tree",
+      "target": "topological_vector_updater"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "PROJECT_REPORT.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "holographic_bypass",
+      "target": "topological_vector_updater"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "Description.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "description_doc",
+      "target": "vsa_mapb_paradigm"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "Description.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "description_doc",
+      "target": "simpkin_tree"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "Description.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "description_doc",
+      "target": "zscore_cleanup"
+    },
+    {
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "Description.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "description_doc",
+      "target": "project_report_doc"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "PROJECT_REPORT.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "project_report_doc",
+      "target": "holographic_bypass"
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "simpkin_tree_encoding_pipeline",
+      "label": "Simpkin Tree Encoding Pipeline",
+      "nodes": [
+        "topological_vector_updater",
+        "item_memory",
+        "hdvectormapb"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "Description.md"
+    },
+    {
+      "id": "sparql_data_access_layer",
+      "label": "SPARQL Data Access Layer",
+      "nodes": [
+        "entity_resolver",
+        "triple_extractor",
+        "sparql_endpoint"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "AGENTS_0.md"
+    },
+    {
+      "id": "semantic_bridge_subsystem",
+      "label": "Semantic Bridge Subsystem (Embedding-Based Cross-Ontology Matching)",
+      "nodes": [
+        "ontology_translator",
+        "semantic_embedding_strategy",
+        "all_minilm_model"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "Description.md"
+    }
+  ],
+  "built_at_commit": "72152e478c46be9adac08a7c94dc5dd49924451c"
+}

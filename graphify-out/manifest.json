@@ -1,0 +1,102 @@
+{
+  "C:\\Users\\Ion\\IdeaProjects\\Vaimee\\VSA\\neuro-semantic-investigator\\src\\main\\java\\com\\investigator\\App.java": {
+    "mtime": 1777449560.8453605,
+    "ast_hash": "28a44bb31cd7cea4aee5251f74f80895",
+    "semantic_hash": "28a44bb31cd7cea4aee5251f74f80895"
+  },
+  "C:\\Users\\Ion\\IdeaProjects\\Vaimee\\VSA\\neuro-semantic-investigator\\src\\main\\java\\com\\investigator\\AppDis.java": {
+    "mtime": 1779116521.4670014,
+    "ast_hash": "32555a4f2b299fb51bbc158ed1b30558",
+    "semantic_hash": "32555a4f2b299fb51bbc158ed1b30558"
+  },
+  "C:\\Users\\Ion\\IdeaProjects\\Vaimee\\VSA\\neuro-semantic-investigator\\src\\main\\java\\com\\investigator\\engine\\InvestigationEngine.java": {
+    "mtime": 1777364939.2901664,
+    "ast_hash": "e7838b2982bf9f468fa583a1e1ae7362",
+    "semantic_hash": "e7838b2982bf9f468fa583a1e1ae7362"
+  },
+  "C:\\Users\\Ion\\IdeaProjects\\Vaimee\\VSA\\neuro-semantic-investigator\\src\\main\\java\\com\\investigator\\jena\\EntityResolver.java": {
+    "mtime": 1778228190.6734428,
+    "ast_hash": "ebf4ef971039126076370dd5d50539d5",
+    "semantic_hash": "ebf4ef971039126076370dd5d50539d5"
+  },
+  "C:\\Users\\Ion\\IdeaProjects\\Vaimee\\VSA\\neuro-semantic-investigator\\src\\main\\java\\com\\investigator\\jena\\GraphManager.java": {
+    "mtime": 1777356202.5950937,
+    "ast_hash": "9da61e3344ebd48a0f648e5ff06e819f",
+    "semantic_hash": "9da61e3344ebd48a0f648e5ff06e819f"
+  },
+  "C:\\Users\\Ion\\IdeaProjects\\Vaimee\\VSA\\neuro-semantic-investigator\\src\\main\\java\\com\\investigator\\jena\\ResolvedEntity.java": {
+    "mtime": 1777374563.4526913,
+    "ast_hash": "6c9c7562e5b20deb2596d391dc3d4e7f",
+    "semantic_hash": "6c9c7562e5b20deb2596d391dc3d4e7f"
+  },
+  "C:\\Users\\Ion\\IdeaProjects\\Vaimee\\VSA\\neuro-semantic-investigator\\src\\main\\java\\com\\investigator\\jena\\SparqlEndpoint.java": {
+    "mtime": 1776450561.0104256,
+    "ast_hash": "f9c73af30fb56fa8ea0cc13933e0b132",
+    "semantic_hash": "f9c73af30fb56fa8ea0cc13933e0b132"
+  },
+  "C:\\Users\\Ion\\IdeaProjects\\Vaimee\\VSA\\neuro-semantic-investigator\\src\\main\\java\\com\\investigator\\jena\\TripleExtractor.java": {
+    "mtime": 1779115003.9003959,
+    "ast_hash": "75483130e4e4b8c3825252a5cbe17973",
+    "semantic_hash": "75483130e4e4b8c3825252a5cbe17973"
+  },
+  "C:\\Users\\Ion\\IdeaProjects\\Vaimee\\VSA\\neuro-semantic-investigator\\src\\main\\java\\com\\investigator\\llm\\OntologyTranslator.java": {
+    "mtime": 1779115405.6199994,
+    "ast_hash": "eeccbd2180abe453e5008f5314dd2514",
+    "semantic_hash": "eeccbd2180abe453e5008f5314dd2514"
+  },
+  "C:\\Users\\Ion\\IdeaProjects\\Vaimee\\VSA\\neuro-semantic-investigator\\src\\main\\java\\com\\investigator\\vsa\\HDVector.java": {
+    "mtime": 1776624243.2305734,
+    "ast_hash": "32ea05100a742ee3ef747738361cc759",
+    "semantic_hash": "32ea05100a742ee3ef747738361cc759"
+  },
+  "C:\\Users\\Ion\\IdeaProjects\\Vaimee\\VSA\\neuro-semantic-investigator\\src\\main\\java\\com\\investigator\\vsa\\HDVectorMapB.java": {
+    "mtime": 1779110256.8564312,
+    "ast_hash": "fe4ba5034a32b7ee3b8d9252f93c41ef",
+    "semantic_hash": "fe4ba5034a32b7ee3b8d9252f93c41ef"
+  },
+  "C:\\Users\\Ion\\IdeaProjects\\Vaimee\\VSA\\neuro-semantic-investigator\\src\\main\\java\\com\\investigator\\vsa\\ItemMemory.java": {
+    "mtime": 1777382681.9252326,
+    "ast_hash": "25ddbb6d33ff977987d3e2220bdb9e12",
+    "semantic_hash": "25ddbb6d33ff977987d3e2220bdb9e12"
+  },
+  "C:\\Users\\Ion\\IdeaProjects\\Vaimee\\VSA\\neuro-semantic-investigator\\src\\main\\java\\com\\investigator\\vsa\\strategy\\RandomGenerationStrategy.java": {
+    "mtime": 1778862302.8684416,
+    "ast_hash": "3212f96778235b54a937570cb80414a4",
+    "semantic_hash": "3212f96778235b54a937570cb80414a4"
+  },
+  "C:\\Users\\Ion\\IdeaProjects\\Vaimee\\VSA\\neuro-semantic-investigator\\src\\main\\java\\com\\investigator\\vsa\\strategy\\SemanticEmbeddingStrategy.java": {
+    "mtime": 1776968662.6173606,
+    "ast_hash": "22da97b1687203596bc1183b0f1be0c9",
+    "semantic_hash": "22da97b1687203596bc1183b0f1be0c9"
+  },
+  "C:\\Users\\Ion\\IdeaProjects\\Vaimee\\VSA\\neuro-semantic-investigator\\src\\main\\java\\com\\investigator\\vsa\\strategy\\TopologicalVectorUpdater.java": {
+    "mtime": 1779110324.723039,
+    "ast_hash": "2bc81ac304fc1ebde6966fc964129322",
+    "semantic_hash": "2bc81ac304fc1ebde6966fc964129322"
+  },
+  "C:\\Users\\Ion\\IdeaProjects\\Vaimee\\VSA\\neuro-semantic-investigator\\src\\main\\java\\com\\investigator\\vsa\\strategy\\VectorGenerationStrategy.java": {
+    "mtime": 1776016075.9965267,
+    "ast_hash": "dc43d264662cf8a66f6de59570f493f6",
+    "semantic_hash": "dc43d264662cf8a66f6de59570f493f6"
+  },
+  "C:\\Users\\Ion\\IdeaProjects\\Vaimee\\VSA\\neuro-semantic-investigator\\src\\test\\java\\com\\investigator\\AppTest.java": {
+    "mtime": 1776012515.1508272,
+    "ast_hash": "f7406f69da90f749fbfc4a52b971d48d",
+    "semantic_hash": "f7406f69da90f749fbfc4a52b971d48d"
+  },
+  "C:\\Users\\Ion\\IdeaProjects\\Vaimee\\VSA\\neuro-semantic-investigator\\src\\test\\java\\com\\investigator\\vsa\\HDVectorMapBTest.java": {
+    "mtime": 1776013351.7077456,
+    "ast_hash": "4c8e27d17f4b16af1cf38c67d1bd0671",
+    "semantic_hash": "4c8e27d17f4b16af1cf38c67d1bd0671"
+  },
+  "C:\\Users\\Ion\\IdeaProjects\\Vaimee\\VSA\\neuro-semantic-investigator\\AGENTS_0.md": {
+    "mtime": 1779376191.1419513,
+    "ast_hash": "563c5445ebf26e914a9c546e1285f67b",
+    "semantic_hash": "563c5445ebf26e914a9c546e1285f67b"
+  },
+  "C:\\Users\\Ion\\IdeaProjects\\Vaimee\\VSA\\neuro-semantic-investigator\\Description.md": {
+    "mtime": 1779376191.1419513,
+    "ast_hash": "b56daf458f3eb48e8da8a8e77a15d5c3",
+    "semantic_hash": "b56daf458f3eb48e8da8a8e77a15d5c3"
+  }
+}
