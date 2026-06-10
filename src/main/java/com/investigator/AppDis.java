@@ -1,6 +1,6 @@
 package com.investigator;
 
-import com.investigator.llm.OntologyTranslator;
+import com.investigator.embedding.OntologyTranslator;
 import com.investigator.vsa.*;
 import com.investigator.vsa.strategy.RandomGenerationStrategy;
 import com.investigator.vsa.strategy.TopologicalVectorUpdater;

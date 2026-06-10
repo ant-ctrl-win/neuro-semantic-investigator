@@ -2,7 +2,7 @@
 
 ## Build & Run
 - **Maven** — no wrapper (`mvnw`). Requires `mvn` on PATH.
-- **Java target is 17**, not 21. `pom.xml` properties say 21 but `maven-compiler-plugin` overrides to 17.
+- **Java target is 21** — aligned across `pom.xml` properties and `maven-compiler-plugin`.
 - `mvn compile` / `mvn test` / `mvn package`
 - No `exec-maven-plugin` in POM — run main classes via IDE (IntelliJ/Eclipse) or `java -cp`.
 - Three test frameworks declared (JUnit 5 engine, TestNG, JUnit 4), but **no real tests exist** — only skeletons. `mvn test` passes trivially.
@@ -12,8 +12,7 @@
 - Full technical description: `Description.md` (Italian).
 - **Entry points**: `App.java` (basic pipeline) and `AppDis.java` (adds disambiguation/reranking). Both have **hardcoded entity names** — edit strings in `main()` to run different analogies.
 - Requires **live network** — queries `query.wikidata.org/sparql` for entity resolution, graph ingestion, and label lookups.
-- **First run downloads MiniLM embedding model** (~22 MB) automatically via Langchain4j.
-- `OntologyTranslator` uses `AllMiniLmL6V2EmbeddingModel` (384-d embeddings), **not an LLM** — despite variable naming and doc mentions of "LLM".
+- **Embedding model**: `bge-base-en-v1.5` (768-dim ONNX) loaded from local files — **no auto-download**. `OnnxEmbeddingModel` takes the `.onnx` file path; `tokenizer.json` is auto-resolved from the same directory. Requires `models/model.onnx` and `models/tokenizer.json` in the project root. Download these from [BAAI/bge-base-en-v1.5](https://huggingface.co/BAAI/bge-base-en-v1.5) before first run (see Setup below).
 
 ## Source Layout
 | Package | Role |
@@ -23,7 +22,16 @@
 | `com.investigator.vsa` | VSA algebra: `HDVector` (interface), `HDVectorMapB` (D=10000, bipolar `byte[]`), `ItemMemory` (3-tier) |
 | `com.investigator.vsa.strategy` | Vector generation: `RandomGenerationStrategy` (default, deterministic from URI), `SemanticEmbeddingStrategy` (not used by default) |
 | `com.investigator.engine` | `InvestigationEngine` (orchestrator) |
-| `com.investigator.llm` | `OntologyTranslator` (MiniLM embedding-based cross-ontology matching) |
+| `com.investigator.embedding` | `OntologyTranslator` (embedding-based cross-ontology matching, bge-base-en-v1.5) |
+
+## Setup
+Download the embedding model files to `models/` in the project root:
+```powershell
+New-Item -ItemType Directory -Path models -Force
+Invoke-WebRequest -Uri "https://huggingface.co/BAAI/bge-base-en-v1.5/resolve/main/onnx/model.onnx" -OutFile "models/model.onnx"
+Invoke-WebRequest -Uri "https://huggingface.co/BAAI/bge-base-en-v1.5/resolve/main/tokenizer.json" -OutFile "models/tokenizer.json"
+```
+`models/` is git-ignored.
 
 ## Key Quirks
 - All comments, docs, and console output are in **Italian**.
@@ -32,8 +40,3 @@
 - `fetchLabelFromWikidata()` normalizes `/prop/direct/` → `/entity/` before SPARQL label lookup.
 - `isMetadata()` hardcodes a list of Wikidata property IDs to skip (P18, P373, P2002, P2013, P137).
 - Eclipse project files (`.project`, `.classpath`, `.settings/`) coexist with IntelliJ (`.idea/`). Do not delete either set.
-
-## Graphify
-- Check `graphify-out/GRAPH_REPORT.md` for component overview and community structure before non-trivial changes.
-- AST cache at `src/graphify-out/cache/ast/`.
-- Run `/graphify --update` to regenerate after significant changes.

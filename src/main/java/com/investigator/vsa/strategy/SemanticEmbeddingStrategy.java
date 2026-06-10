@@ -3,7 +3,7 @@ import com.investigator.vsa.HDVectorMapB;
 import com.investigator.vsa.HDVector;
 import com.investigator.vsa.HDVectorMapB;
 import dev.langchain4j.data.embedding.Embedding;
-import dev.langchain4j.model.embedding.AllMiniLmL6V2EmbeddingModel;
+import dev.langchain4j.model.embedding.OnnxEmbeddingModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 
 import java.util.Map;
@@ -27,8 +27,8 @@ public class SemanticEmbeddingStrategy implements VectorGenerationStrategy {
 
     public SemanticEmbeddingStrategy() {
         // Inizializza il modello locale in-memory (pesa circa 22MB)
-        this.embeddingModel = new AllMiniLmL6V2EmbeddingModel();
-        this.embeddingDim = 384; // Dimensione esatta prodotta da all-MiniLM-L6-v2
+        this.embeddingModel = new OnnxEmbeddingModel("models/model.onnx");
+        this.embeddingDim = 768; // Dimensione esatta prodotta da bge-base-en-v1.5
 
         // Creazione della Matrice di Proiezione Fissa LSH
         this.projectionMatrix = new float[embeddingDim][HDVectorMapB.D];
@@ -82,7 +82,7 @@ public class SemanticEmbeddingStrategy implements VectorGenerationStrategy {
         }
 
         // CHIAMATA REALE A LANGCHAIN4J
-        System.out.println("   [LLM] Calcolo embedding semantico per: '" + textToEmbed + "'");
+        System.out.println("   [Encoder] Calcolo embedding semantico per: '" + textToEmbed + "'");
         Embedding embedding = embeddingModel.embed(textToEmbed).content();
         float[] denseVector = embedding.vector();
 
