@@ -46,7 +46,7 @@
 > - La tripla di base è protetta sintatticamente: $\mathbf{E} = \mathbf{v}_S \otimes \rho^1(\mathbf{v}_P) \otimes \rho^2(\mathbf{v}_O)$.
 > - I blocchi di triple (Chunk) sono limitati a un $N_{max} = 30$: $\mathbf{C}_P = \bigoplus_{i=1}^{30} \mathbf{E}_i \oplus \mathbf{v}_{stop}$.
 > - Il ramo completo è la codifica del chunk legato alla sua proprietà: $\mathbf{R}_P = \mathbf{C}_P \otimes \mathbf{v}_P \otimes \rho^{100}$.
-> - other
+> 
 > L'entità finale è il Bundle dei rami. Questo partizionamento confina l'interferenza costruttiva/distruttiva all'interno di blocchi limitati.»
 
 ### L'Aggancio al Codice (Cosa mostrare a livello logico)
