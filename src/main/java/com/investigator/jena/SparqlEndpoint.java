@@ -12,7 +12,7 @@ import java.nio.charset.StandardCharsets;
 
 public class SparqlEndpoint {
     private final String endpointUrl;
-    private static final String USER_AGENT = "NeuroSemanticInvestigator/1.0 (mailto:acrispino10@gmail.com; Java/Jena5)";
+    private static final String USER_AGENT = "neuro-semantic-investigator/0.1 (research; project@example.com)";
 
     public SparqlEndpoint(String endpointUrl) {
         this.endpointUrl = endpointUrl;

@@ -11,6 +11,19 @@ import org.apache.jena.rdf.model.*;
 import java.util.*;
 
 public class AppDis {
+    private static final String USER_AGENT = "neuro-semantic-investigator/0.1 (research; project@example.com)";
+    private static final String WIKIDATA_ENDPOINT = "https://query.wikidata.org/sparql";
+//    private static final String WIKIDATA_QUERY_TEMPLATE = "PREFIX wdt: <http://www.wikidata.org/prop/direct/> " +
+//            "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> " +
+//            "SELECT DISTINCT ?event ?eventLabel ?classLabel WHERE { " +
+//            "  { <%s> wdt:P793 ?event . } " +
+//            "  UNION { ?event wdt:P2283 <%s> . } " +
+//            "  UNION { ?event wdt:P516 <%s> . } " +
+//            "  OPTIONAL { ?event wdt:P31 ?class . ?class rdfs:label ?classLabel . FILTER(lang(?classLabel)='en') } " +
+//            "  ?event rdfs:label ?eventLabel . FILTER(lang(?eventLabel)='en') " +
+//            "} LIMIT 20";
+
+
     public static void main(String[] args) {
         System.out.println("=== NEURO-SEMANTIC INVESTIGATOR: LA VERA ANALOGIA ===");
         System.out.println("=== Flusso: Risoluzione -> Reranking -> Scoperta VSA -> Encoder-Embedding -> Proiezione Olografica ===\n");
@@ -18,7 +31,7 @@ public class AppDis {
         ItemMemory itemMemory = new ItemMemory(new RandomGenerationStrategy());
         OntologyTranslator translator = new OntologyTranslator();
 
-        SparqlEndpoint wikidataEndpoint = new SparqlEndpoint("https://query.wikidata.org/sparql");
+        SparqlEndpoint wikidataEndpoint = new SparqlEndpoint(WIKIDATA_ENDPOINT);
         GraphManager graphManager = new GraphManager(wikidataEndpoint, new TripleExtractor());
         TopologicalVectorUpdater topologicalUpdater = new TopologicalVectorUpdater();
 
@@ -81,9 +94,9 @@ public class AppDis {
 
             try {
                 org.apache.jena.query.Query query = org.apache.jena.query.QueryFactory.create(sparqlQuery);
-                try (org.apache.jena.query.QueryExecution qexec = org.apache.jena.query.QueryExecution.service("https://query.wikidata.org/sparql")
+                try (org.apache.jena.query.QueryExecution qexec = org.apache.jena.query.QueryExecution.service(WIKIDATA_ENDPOINT)
                         .query(query)
-                        .httpHeader("User-Agent", "NeuroSemanticInvestigator/1.0 (ifts-project@example.com)")
+                        .httpHeader("User-Agent", USER_AGENT)
                         .build()) {
                     org.apache.jena.query.ResultSet results = qexec.execSelect();
                     while (results.hasNext()) {
@@ -251,17 +264,23 @@ public class AppDis {
         HDVector noisyTargetObject = pureTargetBranch.bind(targetSubject).bind(targetRole.permute(1)).permute(-2);
 
         // Clean-up Finale sulla memoria atomica (Oggetti)
-        HDVector finalAnalogue = itemMemory.cleanUpRelative(noisyTargetObject);
+        List<ItemMemory.ScoredMatch> topCandidates = itemMemory.cleanUpRelativeTopK(noisyTargetObject, 3);
 
-        if (finalAnalogue != null) {
+        if (!topCandidates.isEmpty()) {
             System.out.println("\n[!] ANALOGIA RISOLTA CON SUCCESSO:");
             System.out.printf("    %-15s sta a  %-15s%n", armstrongEntity.entityLabel(), apolloEntity.entityLabel());
             System.out.println("    COME");
+            System.out.println();
 
-            String humanReadableResult = fetchLabelFromWikidata(itemMemory.getLastBestKey());
-            System.out.printf("    %-15s sta a  %-15s%n", humanReadableResult, currentTargetLabel);
+            int rank = 1;
+            for (ItemMemory.ScoredMatch match : topCandidates) {
+                String label = fetchLabelFromWikidata(match.key());
+                System.out.printf("    #%d  %-25s sta a  %-15s    (σ = %.2f)%n",
+                        rank, label, currentTargetLabel, match.sigma());
+                rank++;
+            }
+
             System.out.println("\n    [Logica Applicata]: " + sourceRoleLabel + " ===> " + targetRoleLabel);
-            System.out.println("    [Confidenza VSA Oggetto]: " + String.format("%.2f", itemMemory.getLastBestSigma()) + " σ");
         } else {
             System.out.println("\n[?] Fallimento nel recupero dell'oggetto finale dal Chunk.");
             System.out.println("    [Confidenza VSA Oggetto]: " + String.format("%.2f", itemMemory.getLastBestSigma()) + " σ");
@@ -278,9 +297,9 @@ public class AppDis {
 
         try {
             org.apache.jena.query.Query query = org.apache.jena.query.QueryFactory.create(sparqlQuery);
-            try (org.apache.jena.query.QueryExecution qexec = org.apache.jena.query.QueryExecution.service("https://query.wikidata.org/sparql")
+            try (org.apache.jena.query.QueryExecution qexec = org.apache.jena.query.QueryExecution.service(WIKIDATA_ENDPOINT)
                     .query(query)
-                    .httpHeader("User-Agent", "NeuroSemanticInvestigator/1.0 (ifts-project@example.com)")
+                    .httpHeader("User-Agent", USER_AGENT)
                     .build()) {
 
                 org.apache.jena.query.ResultSet results = qexec.execSelect();
@@ -348,9 +367,9 @@ public class AppDis {
 
         try {
             org.apache.jena.query.Query query = org.apache.jena.query.QueryFactory.create(sparqlQuery);
-            try (org.apache.jena.query.QueryExecution qexec = org.apache.jena.query.QueryExecution.service("https://query.wikidata.org/sparql")
+            try (org.apache.jena.query.QueryExecution qexec = org.apache.jena.query.QueryExecution.service(WIKIDATA_ENDPOINT)
                     .query(query)
-                    .httpHeader("User-Agent", "NeuroSemanticInvestigator/1.0 (ifts-project@example.com)")
+                    .httpHeader("User-Agent", USER_AGENT)
                     .build()) {
                 org.apache.jena.query.ResultSet results = qexec.execSelect();
                 if (results.hasNext()) return results.nextSolution().getLiteral("label").getString();

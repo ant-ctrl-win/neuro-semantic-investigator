@@ -3,4 +3,22 @@
 /*.iml
 .DS_Store
 *.log
-# models/
+
+# Models (downloaded at runtime)
+models/
+*.onnx
+*.zip
+
+# Session logs (dev artifacts)
+session-ses_*.md
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Development artifacts (not part of the project)
+audit_report.md
+branch_analysis.md
+compile_diagnosis.md
+refactoring_map.md

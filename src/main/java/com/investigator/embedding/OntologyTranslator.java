@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 public class OntologyTranslator {
 
     public static final int EMBEDDING_DIMENSION = 768;
+    private static final String USER_AGENT = "neuro-semantic-investigator/0.1 (research; project@example.com)";
 
     private final EmbeddingModel encoder;
     private final Map<String, String> expectedTypeCache = new ConcurrentHashMap<>();
@@ -77,7 +78,7 @@ public class OntologyTranslator {
             org.apache.jena.query.Query query = org.apache.jena.query.QueryFactory.create(sparql);
             try (org.apache.jena.query.QueryExecution qexec = org.apache.jena.query.QueryExecution.service("https://query.wikidata.org/sparql")
                     .query(query)
-                    .httpHeader("User-Agent", "NeuroSemanticInvestigator/1.0 (ifts-project@example.com)")
+                    .httpHeader("User-Agent", USER_AGENT)
                     .build()) {
                 org.apache.jena.query.ResultSet rs = qexec.execSelect();
                 while (rs.hasNext()) {

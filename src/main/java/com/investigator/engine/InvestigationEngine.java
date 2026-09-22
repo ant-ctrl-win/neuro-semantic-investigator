@@ -17,6 +17,8 @@ public class InvestigationEngine {
     private final List<HDVector> extractedNodeVectors = new ArrayList<>();
     private final List<HDVector> extractedTripleVectors = new ArrayList<>();
 
+    public record Candidate(String entityUri, String entityLabel, double sigma, String derivedProperty) {}
+
     public InvestigationEngine(HDVector contextTarget, GraphManager graphManager) {
         this.itemMemory = new ItemMemory(new RandomGenerationStrategy());
         this.graphManager = graphManager;

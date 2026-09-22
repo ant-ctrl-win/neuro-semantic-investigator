@@ -87,7 +87,7 @@ public static void main(String[] args) {
             org.apache.jena.query.Query query = org.apache.jena.query.QueryFactory.create(sparqlQuery);
             try (org.apache.jena.query.QueryExecution qexec = org.apache.jena.query.QueryExecution.service("https://query.wikidata.org/sparql")
                     .query(query)
-                    .httpHeader("User-Agent", "NeuroSemanticInvestigator/1.0 (ifts-project@example.com)")
+                    .httpHeader("User-Agent", "neuro-semantic-investigator/0.1 (research; project@example.com)")
                     .build()) {
                 org.apache.jena.query.ResultSet results = qexec.execSelect();
                 while (results.hasNext()) {
@@ -240,7 +240,7 @@ public static void main(String[] args) {
             org.apache.jena.query.Query query = org.apache.jena.query.QueryFactory.create(sparqlQuery);
             try (org.apache.jena.query.QueryExecution qexec = org.apache.jena.query.QueryExecution.service("https://query.wikidata.org/sparql")
                     .query(query)
-                    .httpHeader("User-Agent", "NeuroSemanticInvestigator/1.0 (ifts-project@example.com)")
+                    .httpHeader("User-Agent", "neuro-semantic-investigator/0.1 (research; project@example.com)")
                     .build()) {
 
                 org.apache.jena.query.ResultSet results = qexec.execSelect();
@@ -316,7 +316,7 @@ public static void main(String[] args) {
             org.apache.jena.query.Query query = org.apache.jena.query.QueryFactory.create(sparqlQuery);
             try (org.apache.jena.query.QueryExecution qexec = org.apache.jena.query.QueryExecution.service("https://query.wikidata.org/sparql")
                     .query(query)
-                    .httpHeader("User-Agent", "NeuroSemanticInvestigator/1.0 (ifts-project@example.com)")
+                    .httpHeader("User-Agent", "neuro-semantic-investigator/0.1 (research; project@example.com)")
                     .build()) {
                 org.apache.jena.query.ResultSet results = qexec.execSelect();
                 if (results.hasNext()) return results.nextSolution().getLiteral("label").getString();
