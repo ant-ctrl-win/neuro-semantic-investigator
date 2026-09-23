@@ -203,6 +203,18 @@ public class TopologicalVectorUpdater {
         return List.copyOf(triples);
     }
 
+    public List<HDVector> recoverTriples(
+            ItemMemory memory, String entityUri, String predicateUri, HDVector precomputedBranch) {
+        ValueNode tree = valueTrees.get(treeKey(entityUri, predicateUri));
+        if (tree == null || precomputedBranch == null) return List.of();
+        List<HDVector> triples = new ArrayList<>(tree.leafCount);
+        for (int index = 0; index < tree.leafCount; index++) {
+            HDVector triple = recoverTripleFromTree(precomputedBranch, tree, index, memory);
+            if (triple != null) triples.add(triple);
+        }
+        return List.copyOf(triples);
+    }
+
     private HDVector recoverTripleFromTree(
             HDVector currentVector, ValueNode currentNode, int zeroBasedIndex, ItemMemory memory) {
         int remaining = zeroBasedIndex;
