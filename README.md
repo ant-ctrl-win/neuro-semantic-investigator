@@ -133,13 +133,30 @@ The main stages are:
 7. traverse the target tree and rank recovered objects;
 8. fetch display labels in batches.
 
-The ordinary path currently performs about nine remote requests in
-sequence. Property and final-result labels are batched, but the remaining
-request waterfall makes runtime sensitive to Wikidata latency.
+The ordinary path performs seven Wikidata requests: three entity
+searches, two graph expansions, and two batch-label requests. The
+three searches and the two expansions are issued in parallel; the
+remaining calls are sequential. Property and final-result labels are
+batched.
 
 Detailed internals are documented in [FLUSSO_DATI.md](FLUSSO_DATI.md).
-Completed work and remaining defects are tracked in
-[STATO_LAVORI.md](STATO_LAVORI.md).
+
+---
+
+## Performance profile
+
+The engine separates structural computation from remote retrieval:
+
+- **VSA operations** (source-role discovery and target extraction):
+  ~40 ms total.
+- **Network**: 7 Wikidata requests, near-minimal. The theoretical
+  minimum is 6; the seventh is the batch label for final candidates,
+  which cannot be merged because candidates only exist after the VSA
+  projection.
+- **End-to-end demo**: ~6–7 s on a domestic connection, dominated by
+  Wikidata latency.
+
+Per-stage timings are printed at the end of every CLI run.
 
 ---
 
@@ -332,13 +349,15 @@ that rule-based systems cannot express and pure LLMs cannot justify.
 
 ## Current limitations
 
-### Sequential network waterfall
+### Network latency
 
-The normal path performs approximately nine sequential Wikidata
-requests: three entity searches, two graph expansions, two individual
-role-label lookups, and two batch-label requests. This is a fixed
-waterfall rather than a query per RDF property, but its latency is still
-the sum of all remote calls.
+The normal path performs seven Wikidata requests: three entity
+searches, two graph expansions, and two batch-label requests. The
+three searches and the two expansions are issued in parallel; the
+remaining calls are sequential. The number of calls is close to the
+theoretical minimum of six (the seventh is the label batch for final
+candidates, which cannot be merged because candidates only exist after
+the VSA projection). Runtime remains dominated by Wikidata latency.
 
 ### One-hop outgoing graph only
 
@@ -376,27 +395,28 @@ Results depend on live Wikidata content and availability. Semantic role
 alignment requires the local ONNX model and tokenizer. Console output is
 currently in Italian.
 
+### Transient Wikidata errors
+
+Occasional `5xx` responses (e.g. `502 Bad Gateway`) from the Wikidata
+endpoint can degrade label resolution and change the outcome of a run.
+The system does not mask these errors; results may vary between runs.
+
 ---
 
 ## Next engineering steps
 
 The immediate work is intentionally narrower than a product roadmap:
 
-1. add a combined regression test with at least 30 predicates and one
-   predicate containing 100 objects;
-2. remove the duplicate branch traversal between `recoverBranch` and
-   `recoverTriples`;
-3. restrict final candidates to objects of the selected target role;
-4. make recursive recovery report incomplete results explicitly;
-5. parallelize independent Wikidata requests and add per-stage timing;
-6. remove unused test frameworks and the dynamic TestNG version;
-7. validate CLI input before initializing ONNX;
-8. remove obsolete chunks when rebuilding a node;
-9. align graph-extraction names with outgoing-only behavior or implement
-   incoming extraction.
-
-See [STATO_LAVORI.md](STATO_LAVORI.md) for the evidence and detailed
-order of intervention.
+1. restrict final candidates to objects of the selected target role;
+2. make recursive recovery report incomplete results explicitly;
+3. remove unused test frameworks and the dynamic TestNG version;
+4. validate CLI input before initializing ONNX;
+5. remove obsolete chunks when rebuilding a node;
+6. align the Maven runtime and set `maven.compiler.release=21`;
+7. align graph-extraction names with outgoing-only behavior or
+   implement incoming extraction;
+8. simplify `InvestigationEngine.processTriple`;
+9. separate the responsibilities of `App`.
 
 ---
 
@@ -407,14 +427,20 @@ order of intervention.
   Chunking for Decentralized Workflows.* IEEE International Conference
   on Semantic Computing (ICSC). — *Foundational reference for the
   hierarchical chunking scheme implemented in this project.*
-- Kanerva, P. (2009). *Hyperdimensional Computing: An Introduction to
-  Computing in Distributed Representation with High-Dimensional Random
-  Vectors.* Cognitive Computation, 1(2), 139–159.
-- Neubert, P., Schubert, S., & Protzel, P. (2019). *An Introduction to
-  Hyperdimensional Computing for Robotics.* Chemnitz University of
-  Technology.
-- Karunaratne, G. et al. (2021). *Robust High-dimensional Memory-augmented
-  Neural Networks.* IBM Research – Zurich.
+- Gayler, R. W. (2003). *Vector Symbolic Architectures answer
+  Jackendoff's challenges for cognitive neuroscience.* In Proceedings
+  of the Joint International Conference on Cognitive Science
+  (ICCS/ASCS'03), 133–138. University of New South Wales, Sydney.
+  arXiv:cs/0412059 — *Foundational reference for Vector Symbolic
+  Architectures.*
+- Schlegel, K., Neubert, P., & Protzel, P. (2022). *A comparison of
+  vector symbolic architectures.* Artificial Intelligence Review, 55,
+  4523–4555. — *Reference for the MAP-B binary model used in this
+  project.*
+- Kanerva, P. (2009). *Hyperdimensional Computing: An Introduction
+  to Computing in Distributed Representation with High-Dimensional
+  Random Vectors.* Cognitive Computation, 1(2), 139–159. — *Background
+  on hyperdimensional computing.*
 
 ---
 

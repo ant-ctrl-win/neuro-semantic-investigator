@@ -11,3 +11,4 @@ contesto, diff, output di verifica, esito.
 - [P1.4_doppia_traversata.md](P1.4_doppia_traversata.md) — Eliminazione doppia traversata
 - [P2.1a_parallelizzazione.md](P2.1a_parallelizzazione.md) — Parallelizzazione fasi remote
 - [P2.1b_label_e_vsa.md](P2.1b_label_e_vsa.md) — Riduzione label calls + misura VSA
+- [README_update.md](README_update.md) — Aggiornamento README post-P2.1b
