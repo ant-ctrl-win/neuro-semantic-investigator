@@ -9,6 +9,8 @@ import com.investigator.engine.InvestigationEngine;
 import org.apache.jena.rdf.model.*;
 
 import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class App {
     private static final String USER_AGENT = "neuro-semantic-investigator/0.1 (research; project@example.com)";
@@ -41,9 +43,45 @@ public class App {
         System.out.println("[*] Target candidates: " + targetCandidates
                 + ", top-K: " + topK);
 
-        List<ResolvedEntity> apolloResults = resolver.resolve(sourceName, 1);
-        List<ResolvedEntity> armstrongResults = resolver.resolve(knownName, 1);
-        List<ResolvedEntity> targetResults = resolver.resolve(targetName, targetCandidates);
+        Map<String, Double> phaseTimings = new LinkedHashMap<>();
+        AtomicLong resolveSourceNanos = new AtomicLong();
+        AtomicLong resolveKnownNanos = new AtomicLong();
+        AtomicLong resolveTargetNanos = new AtomicLong();
+
+        List<ResolvedEntity> apolloResults;
+        List<ResolvedEntity> armstrongResults;
+        List<ResolvedEntity> targetResults;
+        long resolveWallStart = System.nanoTime();
+        ExecutorService resolverPool = Executors.newFixedThreadPool(3);
+        try {
+            CompletableFuture<List<ResolvedEntity>> apolloFuture = CompletableFuture.supplyAsync(() -> {
+                long start = System.nanoTime();
+                List<ResolvedEntity> resolved = resolver.resolve(sourceName, 1);
+                resolveSourceNanos.set(System.nanoTime() - start);
+                return resolved;
+            }, resolverPool);
+            CompletableFuture<List<ResolvedEntity>> armstrongFuture = CompletableFuture.supplyAsync(() -> {
+                long start = System.nanoTime();
+                List<ResolvedEntity> resolved = resolver.resolve(knownName, 1);
+                resolveKnownNanos.set(System.nanoTime() - start);
+                return resolved;
+            }, resolverPool);
+            CompletableFuture<List<ResolvedEntity>> targetFuture = CompletableFuture.supplyAsync(() -> {
+                long start = System.nanoTime();
+                List<ResolvedEntity> resolved = resolver.resolve(targetName, targetCandidates);
+                resolveTargetNanos.set(System.nanoTime() - start);
+                return resolved;
+            }, resolverPool);
+            apolloResults = apolloFuture.join();
+            armstrongResults = armstrongFuture.join();
+            targetResults = targetFuture.join();
+        } finally {
+            resolverPool.shutdown();
+        }
+        phaseTimings.put("Resolve sorgente (parallelo)", resolveSourceNanos.get() / 1_000_000.0);
+        phaseTimings.put("Resolve oggetto noto (parallelo)", resolveKnownNanos.get() / 1_000_000.0);
+        phaseTimings.put("Resolve target (parallelo)", resolveTargetNanos.get() / 1_000_000.0);
+        phaseTimings.put("Risoluzioni entità (wall)", (System.nanoTime() - resolveWallStart) / 1_000_000.0);
 
         if (apolloResults.isEmpty() || armstrongResults.isEmpty() || targetResults.isEmpty()) {
             System.out.println("   [ERRORE CRITICO] Una o più entità non sono state trovate dal motore di ricerca.");
@@ -88,6 +126,7 @@ public class App {
             Map<String, String> candidateOntologies = new HashMap<>();
             Map<String, String> candidateLabels = new HashMap<>();
 
+            long eventSearchStart = System.nanoTime();
             try {
                 org.apache.jena.query.Query query = org.apache.jena.query.QueryFactory.create(sparqlQuery);
                 try (org.apache.jena.query.QueryExecution qexec = org.apache.jena.query.QueryExecution.service(WIKIDATA_ENDPOINT)
@@ -108,6 +147,7 @@ public class App {
             } catch (Exception e) {
                 System.out.println("   [ERRORE SPARQL] " + e.getMessage());
             }
+            phaseTimings.put("Ricerca evento affine (condizionale)", (System.nanoTime() - eventSearchStart) / 1_000_000.0);
 
             if (!candidateOntologies.isEmpty()) {
                 System.out.println("   [Embedding] Valuto " + candidateOntologies.size() + " candidati topologici rispetto a '" + apolloEntity.classLabel() + "'...");
@@ -135,8 +175,40 @@ public class App {
         Resource apolloResource = ModelFactory.createDefaultModel().createResource(apollo11Uri);
         Resource targetResource = ModelFactory.createDefaultModel().createResource(currentTargetUri);
 
-        engine.expandAndProcess(apolloResource);
-        engine.expandAndProcess(targetResource);
+        AtomicLong apolloFetchNanos = new AtomicLong();
+        AtomicLong targetFetchNanos = new AtomicLong();
+        Model apolloRemoteModel;
+        Model targetRemoteModel;
+        long expansionWallStart = System.nanoTime();
+        ExecutorService expansionPool = Executors.newFixedThreadPool(2);
+        try {
+            CompletableFuture<Model> apolloFetch = CompletableFuture.supplyAsync(() -> {
+                long start = System.nanoTime();
+                Model remote = graphManager.fetchOutgoing(apolloResource);
+                apolloFetchNanos.set(System.nanoTime() - start);
+                return remote;
+            }, expansionPool);
+            CompletableFuture<Model> targetFetch = CompletableFuture.supplyAsync(() -> {
+                long start = System.nanoTime();
+                Model remote = graphManager.fetchOutgoing(targetResource);
+                targetFetchNanos.set(System.nanoTime() - start);
+                return remote;
+            }, expansionPool);
+            apolloRemoteModel = apolloFetch.join();
+            targetRemoteModel = targetFetch.join();
+        } finally {
+            expansionPool.shutdown();
+        }
+        phaseTimings.put("Fetch RDF sorgente (parallelo)", apolloFetchNanos.get() / 1_000_000.0);
+        phaseTimings.put("Fetch RDF target (parallelo)", targetFetchNanos.get() / 1_000_000.0);
+        phaseTimings.put("Espansioni RDF (wall)", (System.nanoTime() - expansionWallStart) / 1_000_000.0);
+
+        // Jena Model non è thread-safe: i due fetch sono paralleli, ma l'inserimento
+        // nel localModel e il processing restano sequenziali (ordine invariato).
+        graphManager.addRemoteModel(apolloRemoteModel);
+        engine.processExpanded(apolloResource);
+        graphManager.addRemoteModel(targetRemoteModel);
+        engine.processExpanded(targetResource);
         Model localModel = engine.getGraphManager().getLocalModel();
 
         HDVector armstrongVector = itemMemory.getOrGenerate(armstrongUri);
@@ -211,14 +283,18 @@ public class App {
         }
 
 
+        long labelSourceStart = System.nanoTime();
         String sourceRoleLabel = fetchLabelFromWikidata(sourceRoleUri);
+        phaseTimings.put("Label ruolo sorgente", (System.nanoTime() - labelSourceStart) / 1_000_000.0);
         System.out.printf("   -> DEDUZIONE COMPLETATA: L'oggetto è legato tramite '%s' (z=%.2fσ)\n", sourceRoleLabel, bestSigma);
 
         System.out.println("\n=======================================================");
         System.out.println("   STEP 2: IL PONTE ANALOGICO (Embedding + Filtro Strutturale) ");
         System.out.println("=======================================================");
 
+        long propertyInventoryStart = System.nanoTime();
         Map<String, String> allTargetProperties = extractPropertyLabels(targetResource, localModel);
+        phaseTimings.put("Inventario proprietà + batch label", (System.nanoTime() - propertyInventoryStart) / 1_000_000.0);
         Map<String, String> targetProperties = new HashMap<>();
 
         System.out.println("   [FILTRO STRUTTURALE RDF] Scrematura delle proprietà incompatibili...");
@@ -255,7 +331,9 @@ public class App {
             System.out.println("   [ERRORE] Il traduttore non ha trovato un equivalente per '" + sourceRoleLabel + "'. Analogia fallita.");
             return;
         }
+        long labelTargetStart = System.nanoTime();
         String targetRoleLabel = fetchLabelFromWikidata(targetRoleUri);
+        phaseTimings.put("Label ruolo target", (System.nanoTime() - labelTargetStart) / 1_000_000.0);
 
         System.out.println("\n=======================================================");
         System.out.println("    STEP 3 & 4: PROIEZIONE E ESTRAZIONE TARGET (VSA)    ");
@@ -313,7 +391,9 @@ public class App {
             Set<String> candidateKeys = topCandidates.stream()
                     .map(ItemMemory.ScoredMatch::key)
                     .collect(java.util.stream.Collectors.toSet());
+            long batchLabelsStart = System.nanoTime();
             Map<String, String> candidateLabels = batchFetchLabels(candidateKeys);
+            phaseTimings.put("Batch label candidati", (System.nanoTime() - batchLabelsStart) / 1_000_000.0);
 
             int rank = 1;
             for (ItemMemory.ScoredMatch match : topCandidates) {
@@ -328,6 +408,16 @@ public class App {
             System.out.println("\n[?] Fallimento nel recupero dell'oggetto finale dal Chunk.");
             System.out.println("    [Confidenza VSA Oggetto]: " + String.format("%.2f", itemMemory.getLastBestSigma()) + " σ");
         }
+
+        System.out.println("\n=== METRICHE DI FASE (ms) ===");
+        double measuredTotal = 0.0;
+        for (Map.Entry<String, Double> entry : phaseTimings.entrySet()) {
+            System.out.printf("   %-46s %10.1f ms%n", entry.getKey(), entry.getValue());
+            if (!entry.getKey().contains("(parallelo)")) {
+                measuredTotal += entry.getValue();
+            }
+        }
+        System.out.printf("   %-46s %10.1f ms%n", "TOTALE (sequenziali + gruppi paralleli)", measuredTotal);
     }
 
     private static Map<String, String> extractPropertyLabels(Resource entity, Model localGraph) {

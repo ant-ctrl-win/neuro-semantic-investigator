@@ -38,6 +38,14 @@ public class GraphManager {
         expandNode(node, TripleExtractor.Direction.INCOMING);
     }
 
+    public Model fetchOutgoing(Resource node) {
+        return tripleExtractor.extractBidirectional("https://query.wikidata.org/sparql", node.getURI());
+    }
+
+    public void addRemoteModel(Model remoteModel) {
+        localModel.add(remoteModel);
+    }
+
     public Stream<Statement> getNeighborhood(Resource node) {
         StmtIterator iter = localModel.listStatements(node, null, (RDFNode) null);
         Stream<Statement> outgoing = iter.toList().stream();

@@ -33,10 +33,13 @@ public class InvestigationEngine {
     }
 
     public void expandAndProcess(Resource node) {
+        graphManager.expandNodeOutgoing(node);
+        processExpanded(node);
+    }
+
+    public void processExpanded(Resource node) {
         Set<Resource> updatedNodes = new HashSet<>();
         updatedNodes.add(node);
-
-        graphManager.expandNodeOutgoing(node);
 
         Stream<Statement> neighborhood = graphManager.getNeighborhood(node);
         neighborhood.forEach(stmt -> {
