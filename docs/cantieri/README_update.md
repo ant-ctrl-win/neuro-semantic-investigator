@@ -247,7 +247,9 @@ index 4dc2843..45e6435 100644
   Convenzione confermata per i cantieri futuri (FLUSSO_DATI update,
   STATO_LAVORI update).
 
-## 7. Nota post-commit (amend)
+## Amendment
 
-Amended after observed network variance (7-50s range) and Wikidata
-rate-limiting behaviour.
+Amended after observed network variance (7–50s range) and Wikidata
+rate-limiting behaviour. Performance profile now reflects typical
+range; limitations section renamed to "Wikidata availability and
+rate-limiting".
