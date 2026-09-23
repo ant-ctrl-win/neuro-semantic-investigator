@@ -1,7 +1,7 @@
 # Neuro-Semantic Investigator
 
-> Explainable analogical reasoning over Wikidata using Vector Symbolic Architectures.
-> No black box. Every inference is traceable.
+> A research prototype for structural analogies over Wikidata using
+> Vector Symbolic Architectures and local sentence embeddings.
 
 [![Java](https://img.shields.io/badge/Java-21-orange)]()
 [![Apache Jena](https://img.shields.io/badge/Apache%20Jena-5.0-blue)]()
@@ -10,110 +10,136 @@
 
 ---
 
-## Elevator Pitch
+## What this project does
 
-Large Language Models reason fluently but opaquely. Ask an LLM whether
-*Hamlet : Shakespeare = Requiem : ?* and you may get the right answer —
-with no auditable path to it. In regulated environments (legal, pharma,
-industrial compliance) that is not acceptable.
+Neuro-Semantic Investigator evaluates analogies of the form:
 
-**Neuro-Semantic Investigator** answers structural analogies over Wikidata
-without training a single parameter. It builds a high-dimensional
-associative memory from RDF triples using **Vector Symbolic Architectures
-(VSA)**, performs inference through bind / bundle / permute algebra, and
-returns a ranked list of candidates with statistical confidence scores.
+```text
+A : B = C : ?
+```
 
-**Explainable AI by construction**, not by post-hoc explanation.
+It resolves the three input names against Wikidata, downloads bounded
+one-hop RDF neighborhoods, encodes their triples in 10,000-dimensional
+binary spatter codes, discovers the relation between `A` and `B`, maps
+that relation to the domain of `C` with a local ONNX embedding model,
+and ranks the objects recovered from the corresponding target branch.
 
----
+For the default query:
 
-## Why it matters
+```text
+Amleto : William Shakespeare = Lacrimosa : ?
+```
 
-- **Cross-domain analogies.** Traditional SPARQL queries require the
-  relation to be expressible in the query. NSI finds structural
-  analogies across domains that no rigid rule-based system would
-  surface. Example: *Nile : Egypt = Mont Blanc : ?* returns France and
-  Italy — linking a geographical feature (*basin country*) to a
-  political one (*country*).
-- **No training.** The engine adds new knowledge by vector operations,
-  not by gradient descent. No GPU, no retraining, no model drift.
-- **Regulated industries** need inference chains auditors can follow.
-- **Edge AI** benefits from associative memories that fit in kilobytes
-  and need no accelerator at inference time.
+the current pipeline discovers `author`, maps it to `composer`, and
+returns Franz Xaver Süssmayr and Wolfgang Amadeus Mozart. The console
+output exposes the resolved entities, selected roles, embedding scores,
+VSA branch confidence, and final candidate scores.
+
+This repository is an experimental implementation. Its scores are
+relative separation measures inside the current associative memory;
+they are not calibrated probabilities.
 
 ---
 
-## Theoretical Foundation
+## Why combine RDF, VSA, and embeddings?
+
+Each component has a narrow role:
+
+- **Wikidata and RDF** provide the entities and explicit graph
+  structure used by the inference.
+- **VSA algebra** represents triples, predicates, positions, chunks,
+  and tree levels through deterministic bind, bundle, and permutation
+  operations.
+- **Sentence embeddings** compare labels belonging to different
+  ontologies, such as `author` and `composer`. The embedding model does
+  not generate the final answer.
+
+This separation makes it possible to inspect how a result was obtained:
+which Wikidata entities were selected, which source predicate was found,
+which target predicate was chosen, and which objects were recovered from
+that predicate. Some stages still use empirical thresholds and external
+Wikidata data, so reproducibility also depends on those inputs.
+
+---
+
+## VSA model and hierarchical chunking
 
 This project is inspired by Vector Symbolic Architectures (VSA) and by
 the hierarchical chunking scheme proposed by Simpkin et al. (2018) for
 encoding large-scale, structurally recursive representations.
 
-VSA encodes atomic symbols as high-dimensional random vectors (10,000
-dimensions for binary spatter codes) and combines them through two
-operations:
+Atomic symbols are deterministic bipolar vectors:
 
-- **Bundling** — element-wise addition, produces a vector similar to all
-  its components (a "bag of features").
-- **Binding** — element-wise multiplication or XOR, produces a vector
-  dissimilar to both operands (a "role-filler pair").
+```text
+v(u) ∈ {-1,+1}^10000
+```
 
-Simpkin et al. observed that bundling has a **theoretical capacity limit
-of ~89 vectors** for 10,000-dimensional binary spaces (at 3σ confidence),
-and proposed recursive chunking to overcome it: when a bundle would
-exceed capacity, group elements into sub-chunks, encode each sub-chunk
-as a single hypervector, and bundle the sub-chunks instead — producing a
-hierarchical tree with semantic matching at every level.
+The implementation uses:
 
-NSI adapts this scheme to a different domain: instead of encoding
-workflows, it encodes RDF triples from Wikidata as bound role-filler
-pairs, bundles them into chunk and tree memories, and performs
-analogical inference through unbinding and statistical clean-up.
+- **binding** by element-wise multiplication;
+- **bundling** by simultaneous addition followed by bipolar thresholding;
+- **permutation** by circular shift;
+- **cosine similarity** for comparison and clean-up.
 
-**Important**: the current implementation is a **pragmatic adaptation**
-of the Simpkin scheme, not a faithful implementation. Specifically:
+An RDF triple is encoded as:
 
-- Permutations use **fixed shifts** for the triple roles (S/P/O at
-  1, 2) plus a cumulative positional encoding (eq. 5) at the chunk level.
-- The StopVec is included in the bundle with cumulative positional
-  roles, following eq. 5.
-- The chunk size is configurable (default 30, conservative vs. the
-  theoretical 89 at 3σ).
-- Recursive chunking is applied both to triples within a predicate
-  bucket and to branches within a node, with content-addressed padding.
+```text
+T(s,p,o) = S ⊗ ρ(P,1) ⊗ ρ(O,2)
+```
+
+Chunks follow the cumulative positional scheme from equation 5 of
+Simpkin et al. Each element is shifted by its position and bound to the
+cumulative product of positional role vectors. A `StopVec` terminates
+the content.
+
+The chunk capacity is configurable and defaults to 30, leaving room for
+29 data elements plus `StopVec`. If a predicate has more than 29
+objects, its triples form a recursive value tree. If an entity has at
+least 30 predicates, its predicate branches form a separate recursive
+branch tree. Both trees are traversed and cleaned one level at a time.
+
+The implementation is an adaptation of the paper to RDF data. Fixed
+permutations distinguish predicate and object roles inside a triple;
+cumulative positional roles encode order inside each chunk.
 
 ---
 
-## Architecture
+## Processing pipeline
 
 ```mermaid
-flowchart LR
-    A[Natural query<br/>A:B = C:?] --> B[EntityResolver]
-    B -->|Wikidata API| C[GraphManager]
-    C -->|SPARQL CONSTRUCT<br/>1-hop outgoing| D[TripleExtractor]
-    D --> E[TopologicalVectorUpdater<br/>Simpkin eq.5 chunking]
-    E --> F[ItemMemory<br/>3-level associative store<br/>atomic / chunk / tree]
-    G[OntologyTranslator<br/>ONNX bge-base embeddings] --> H[Role alignment<br/>source vs target predicates]
-    H --> I[InvestigationEngine<br/>bind / unbind / cleanup]
-    F --> I
-    I --> J[Ranked candidates<br/>with σ scores]
+flowchart TD
+    A[CLI query A:B = C:?] --> B[EntityResolver]
+    B -->|3 searches| W[(Wikidata)]
+    W --> C[Candidate reranking]
+    C --> D[Two outgoing RDF expansions]
+    D --> E[Local Jena model]
+    E --> F[Atomic vectors and triple encoding]
+    F --> G[Recursive value and branch trees]
+    G --> H[Source-role discovery]
+    H --> I[ONNX role alignment]
+    I --> J[Recursive target recovery]
+    J --> K[Atomic clean-up and ranking]
+    K --> L[Ranked result]
 ```
 
-**Data flow**
+The main stages are:
 
-1. **Entity resolution** — query keywords are mapped to Wikidata entities.
-2. **Subgraph extraction** — a bounded 1-hop neighborhood is downloaded
-   via SPARQL CONSTRUCT.
-3. **Chunking** — RDF triples are grouped by predicate and encoded as
-   role-filler pairs, then bundled with cumulative positional roles
-   (Simpkin eq. 5). Nodes with many predicates are recursively chunked.
-4. **Ontology alignment** — predicates are embedded with an ONNX
-   sentence encoder and semantically matched across domains (e.g.
-   *author* → *composer*, *basin country* → *country*).
-5. **Inference** — the engine binds, unbinds, and statistically cleans
-   up hypervectors to retrieve the entity that satisfies `A : B = C : x`.
-6. **Output** — ranked candidates with σ confidence scores, plus the
-   applied analogy for full traceability.
+1. resolve the three names and rerank target candidates;
+2. download outgoing one-hop RDF neighborhoods for source and target;
+3. generate deterministic atomics and encode RDF triples;
+4. build recursive value trees and predicate-branch trees;
+5. recover the predicate relating source and known object;
+6. align that predicate with target predicates using local embeddings;
+7. traverse the target tree and rank recovered objects;
+8. fetch display labels in batches.
+
+The ordinary path currently performs about nine remote requests in
+sequence. Property and final-result labels are batched, but the remaining
+request waterfall makes runtime sensitive to Wikidata latency.
+
+Detailed internals are documented in [FLUSSO_DATI.md](FLUSSO_DATI.md).
+Completed work and remaining defects are tracked in
+[STATO_LAVORI.md](STATO_LAVORI.md).
 
 ---
 
@@ -261,8 +287,8 @@ API.
     William Shakespeare sta a  Hamlet
     COME
 
-    #1  Franz Xaver Süssmayr      sta a  Requiem            (σ = 27.54)
-    #2  Wolfgang Amadeus Mozart   sta a  Requiem            (σ = 27.44)
+    #1  Franz Xaver Süssmayr      sta a  Requiem            (σ = 30.86)
+    #2  Wolfgang Amadeus Mozart   sta a  Requiem            (σ = 30.85)
 
     [Logica Applicata]: author ===> composer
 ```
@@ -278,15 +304,15 @@ exposes the ambiguity rather than hiding it.
 **Query:** `Nile : Egypt = Mont Blanc : ?`
 
 ```
-    #1  France                    sta a  Mont Blanc         (σ = 30.54)
-    #2  Italy                     sta a  Mont Blanc         (σ = 30.49)
+    #1  France                    sta a  Mont Blanc         (σ = 34.00)
+    #2  Italy                     sta a  Mont Blanc         (σ = 33.85)
 
-    [Logica Applicata]: basin country ===> country
+    [Logica Applicata]: country ===> country
 ```
 
-The engine mapped *basin country* (a hydrological property) to *country*
-(a political property). No SPARQL query expresses this relation; the
-system found it structurally.
+The current Wikidata neighborhood links the Nile and Mont Blanc through
+the `country` predicate. The engine discovers that predicate from the
+known source object and retrieves both countries attached to Mont Blanc.
 
 ### Example 3 — Analogy across radically different domains
 
@@ -304,59 +330,73 @@ that rule-based systems cannot express and pure LLMs cannot justify.
 
 ---
 
-## Known Limitations
+## Current limitations
 
-### Multi-hop inference not supported
+### Sequential network waterfall
 
-The engine operates on direct 1-hop neighborhoods. Deductions requiring
-traversing two or more hops (e.g., *Nile → country → continent*) are
-outside the current scope.
+The normal path performs approximately nine sequential Wikidata
+requests: three entity searches, two graph expansions, two individual
+role-label lookups, and two batch-label requests. This is a fixed
+waterfall rather than a query per RDF property, but its latency is still
+the sum of all remote calls.
 
-### Disambiguation depends on popularity prior
+### One-hop outgoing graph only
 
-Entity disambiguation combines class similarity (60%) and Wikidata
-sitelink count (40%). Sitelink count introduces three biases:
-- **Popularity bias** — mainstream entities win over contextually
-  correct obscure ones.
-- **Cultural bias** — Western/anglophone entities accumulate more
-  sitelinks.
-- **Recency bias** — recently created entities have fewer sitelinks.
+The extractor downloads direct outgoing triples. The existing
+`extractBidirectional` name and `Direction` API do not yet reflect the
+actual behavior. Multi-hop and incoming-edge inference are unsupported.
 
-Example: the query `Nile : boat = cave : ?` disambiguates *cave* to
-*Minecraft* (a video game), not to the physical cave concept.
+### Heuristic thresholds
 
-### Incoming edges not extracted
+Class compatibility, role alignment, source-role selection, structural
+clean-up, and final atomic clean-up use empirical or distribution-based
+thresholds. The printed σ values indicate separation in the current
+candidate memory and must not be interpreted as probabilities.
 
-The current extractor fetches only outgoing triples. Properties listed
-as "incoming" in the ontology inventory are not used for source-role
-deduction. This is a conservative design choice that will be revisited.
+### Final clean-up candidate domain
 
-### Demo output is in Italian
+The final atomic clean-up currently searches the entire atomic memory,
+which also contains predicates and internal role vectors. Restricting
+the candidate bank to objects of the selected target predicate is a
+planned correctness improvement.
 
-The console demo and inline comments are in Italian. The architecture
-is language-agnostic; the README and code identifiers are in English.
+### Partial recursive recovery
 
-### No persistence
+`recoverTriples` currently omits a leaf that fails structural clean-up.
+The API does not yet expose whether the returned list is complete.
 
-`ItemMemory` is in-process only. Knowledge built during a run is not
-saved between sessions.
+### In-memory state
+
+The Jena graph, atomic vectors, chunk vectors, tree paths, and roots are
+rebuilt on every run. There is no persistence or cross-run cache.
+
+### External data and model requirements
+
+Results depend on live Wikidata content and availability. Semantic role
+alignment requires the local ONNX model and tokenizer. Console output is
+currently in Italian.
 
 ---
 
-## Roadmap
+## Next engineering steps
 
-- **Incoming edge extraction** — bidirectional 1-hop for full
-  neighborhood coverage.
-- **Multi-hop inference** — recursive VSA decoding across graph
-  traversal.
-- **LLM front-end via LangChain4j** — natural-language questions
-  converted to structured `A : B = C : ?` queries; the LLM handles
-  phrasing, VSA handles reasoning. No hallucination surface.
-- **REST API (Jakarta EE)** — expose the engine as a service.
-- **Frontend (React)** — minimal query interface with ranked results
-  and trace visualization.
-- **ItemMemory persistence** — serialize associative memory between
-  runs.
+The immediate work is intentionally narrower than a product roadmap:
+
+1. add a combined regression test with at least 30 predicates and one
+   predicate containing 100 objects;
+2. remove the duplicate branch traversal between `recoverBranch` and
+   `recoverTriples`;
+3. restrict final candidates to objects of the selected target role;
+4. make recursive recovery report incomplete results explicitly;
+5. parallelize independent Wikidata requests and add per-stage timing;
+6. remove unused test frameworks and the dynamic TestNG version;
+7. validate CLI input before initializing ONNX;
+8. remove obsolete chunks when rebuilding a node;
+9. align graph-extraction names with outgoing-only behavior or implement
+   incoming extraction.
+
+See [STATO_LAVORI.md](STATO_LAVORI.md) for the evidence and detailed
+order of intervention.
 
 ---
 
