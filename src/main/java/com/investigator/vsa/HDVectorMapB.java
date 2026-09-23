@@ -17,12 +17,17 @@ public class HDVectorMapB implements HDVector {
     }
 
     public static HDVectorMapB generateRandom() {
-        HDVectorMapB v = new HDVectorMapB();
-        Random rnd = new Random();
-        for (int i = 0; i < D; i++) {
-            v.values[i] = (byte) (rnd.nextBoolean() ? 1 : -1);
+        // Simpkin, sez. III: la ripetizione del chunk richiede un riempimento stabile.
+        return generateSeeded(0x53494d504b494eL);
+    }
+
+    public static HDVectorMapB generateRandom(List<HDVector> content) {
+        // Simpkin, eq. 5: il seed identifica il contenuto ordinato del chunk.
+        long seed = 1125899906842597L;
+        for (HDVector vector : content) {
+            seed = 31 * seed + Arrays.hashCode(((HDVectorMapB) vector).values);
         }
-        return v;
+        return generateSeeded(seed);
     }
 
     public static HDVectorMapB generateSeeded(long seed) {

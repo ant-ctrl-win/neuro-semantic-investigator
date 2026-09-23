@@ -12,7 +12,6 @@ import java.util.stream.Collectors;
 
 public class OntologyTranslator {
 
-    public static final int EMBEDDING_DIMENSION = 768;
     private static final String USER_AGENT = "neuro-semantic-investigator/0.1 (research; project@example.com)";
 
     private final EmbeddingModel encoder;
@@ -20,31 +19,6 @@ public class OntologyTranslator {
 
     public OntologyTranslator() {
         this.encoder = new OnnxEmbeddingModel("models/model.onnx");
-    }
-
-    /**
-     * Arricchisce una mappa URI→label con il tipo atteso della proprietà (range constraint),
-     * per migliorare il matching embedding.
-     */
-    public Map<String, String> enrichLabelsWithExpectedTypes(Map<String, String> uriToLabel) {
-        List<String> uris = new ArrayList<>(uriToLabel.keySet());
-        Map<String, String> fetched = batchFetchExpectedTypes(uris);
-        expectedTypeCache.putAll(fetched);
-
-        Map<String, String> enriched = new LinkedHashMap<>();
-        for (Map.Entry<String, String> entry : uriToLabel.entrySet()) {
-            String uri = entry.getKey();
-            String label = entry.getValue();
-            String expected = expectedTypeCache.getOrDefault(uri, "");
-
-            // Formulazione ottimizzata per la comprensione dell'Encoder
-            if (!expected.isEmpty()) {
-                enriched.put(uri, label + " (value type: " + expected + ")");
-            } else {
-                enriched.put(uri, label);
-            }
-        }
-        return enriched;
     }
 
     private Map<String, String> batchFetchExpectedTypes(List<String> propertyUris) {

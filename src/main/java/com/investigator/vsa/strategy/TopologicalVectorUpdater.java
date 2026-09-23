@@ -1,99 +1,163 @@
 package com.investigator.vsa.strategy;
 
-import com.investigator.vsa.*;
+import com.investigator.vsa.HDVector;
+import com.investigator.vsa.HDVectorMapB;
+import com.investigator.vsa.ItemMemory;
 import org.apache.jena.rdf.model.*;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class TopologicalVectorUpdater {
-
-    private static final int MAX_CHUNK_CAPACITY = 30;
+    private static final int DEFAULT_CHUNK_CAPACITY = 30;
     private static final String V_STOP_URI = "vsa:internal:stop";
+    private static final String POSITION_URI = "vsa:internal:position:";
+
+    private final int chunkCapacity;
+    private final Map<String, BranchPath> branchPaths = new HashMap<>();
+
+    public TopologicalVectorUpdater() {
+        this(DEFAULT_CHUNK_CAPACITY);
+    }
+
+    public TopologicalVectorUpdater(int chunkCapacity) {
+        if (chunkCapacity < 3) throw new IllegalArgumentException("La capacità deve essere almeno 3");
+        this.chunkCapacity = chunkCapacity;
+    }
+
+    // Simpkin et al. (2018), sez. III: limite di capacità BSC a 3 sigma.
+    public static int capacityForSigma(double sigma) {
+        if (sigma <= 0) throw new IllegalArgumentException("Sigma deve essere positivo");
+        return Math.max(3, (int) Math.floor(89.0 * HDVectorMapB.D / 10_000 * 9 / (sigma * sigma)));
+    }
 
     public void applyTopologicalUpdate(ItemMemory memory, Model localGraph, Set<Resource> updatedNodes) {
         for (Resource node : updatedNodes) {
-            if (node.isURIResource()) {
-                updateNodeVectorHierarchical(memory, node, localGraph);
-            }
+            if (node.isURIResource()) updateNodeVectorHierarchical(memory, node, localGraph);
         }
     }
 
     private void updateNodeVectorHierarchical(ItemMemory memory, Resource node, Model model) {
         String entityUri = node.getURI();
-        HDVector pureIdentity = memory.getOrGenerate(entityUri);
+        // Simpkin, fig. 1: i percorsi seguono l'albero corrente dopo ogni aggiornamento.
+        branchPaths.keySet().removeIf(key -> key.startsWith(entityUri + "\u0000"));
+        List<Statement> statements = model.listStatements(node, null, (RDFNode) null).toList();
+        Map<Property, List<Statement>> buckets = new LinkedHashMap<>();
+        statements.stream().sorted(Comparator.comparing((Statement s) -> s.getPredicate().getURI())
+                        .thenComparing(s -> s.getObject().toString()))
+                .forEach(s -> buckets.computeIfAbsent(s.getPredicate(), key -> new ArrayList<>()).add(s));
 
-        List<Statement> allStatements = model.listStatements(node, null, (RDFNode) null).toList();
-        Map<Property, List<Statement>> buckets = allStatements.stream()
-                .collect(Collectors.groupingBy(Statement::getPredicate));
+        List<BranchNode> nodes = new ArrayList<>();
+        for (Map.Entry<Property, List<Statement>> entry : buckets.entrySet()) {
+            String predicateUri = entry.getKey().getURI();
+            HDVector branch = buildTripleTree(entry.getValue(), memory);
+            memory.saveChunkVector(entityUri + ":chunk:" + predicateUri, branch);
+            nodes.add(new BranchNode(branch.bind(memory.getOrGenerate(predicateUri)),
+                    Map.of(predicateUri, List.of())));
+        }
+
+        boolean grouped = nodes.size() + 1 > chunkCapacity;
+        int level = 0;
+        // Simpkin, sez. III e fig. 1: si ricombinano i rami finché ogni padre rientra nella capacità.
+        while (nodes.size() + 1 > chunkCapacity) {
+            List<BranchNode> parents = new ArrayList<>();
+            for (int start = 0; start < nodes.size(); start += chunkCapacity - 1) {
+                List<BranchNode> children = nodes.subList(start, Math.min(start + chunkCapacity - 1, nodes.size()));
+                HDVector group = encodeChunk(children.stream().map(child -> child.vector).toList(), memory);
+                memory.saveChunkVector(entityUri + ":branch-level:" + level + ":" + parents.size(), group);
+                Map<String, List<Integer>> paths = new HashMap<>();
+                for (int i = 0; i < children.size(); i++) {
+                    for (Map.Entry<String, List<Integer>> path : children.get(i).paths.entrySet()) {
+                        List<Integer> indices = new ArrayList<>();
+                        indices.add(i);
+                        indices.addAll(path.getValue());
+                        paths.put(path.getKey(), List.copyOf(indices));
+                    }
+                }
+                parents.add(new BranchNode(group, paths));
+            }
+            nodes = parents;
+            level++;
+        }
 
         List<HDVector> macroBranches = new ArrayList<>();
-
-        for (Map.Entry<Property, List<Statement>> entry : buckets.entrySet()) {
-            Property predicate = entry.getKey();
-            List<Statement> triples = entry.getValue();
-            HDVector predicateVector = memory.getOrGenerate(predicate.getURI());
-
-            // Costruiamo il Chunk (NON contiene più l'identità pura per evitare l'overpower)
-            HDVector branchContent = (triples.size() <= MAX_CHUNK_CAPACITY) ?
-                    buildSimpleChunk(triples, memory) :
-                    buildRecursiveSubTree(triples, memory);
-
-            // 1. SALVIAMO IL CHUNK PURO NELLA MEMORIA
-            // Usiamo una chiave univoca: URI_Entità + URI_Predicato
-            String chunkKey = entityUri + ":chunk:" + predicate.getURI();
-            memory.saveChunkVector(chunkKey, branchContent);
-
-            // 2. COSTRUIAMO L'ALBERO (Simpkin)
-            // Bindiamo il Chunk al Ruolo e lo shiftiamo per impacchettarlo nel Mega-Vettore
-            macroBranches.add(branchContent.bind(predicateVector).permute(100));
+        for (int i = 0; i < nodes.size(); i++) {
+            BranchNode branch = nodes.get(i);
+            String roleUri = grouped ? entityUri + ":branch-root:" + i : branch.paths.keySet().iterator().next();
+            macroBranches.add(branch.vector.bind(memory.getOrGenerate(roleUri)).permute(100));
+            if (grouped) {
+                for (Map.Entry<String, List<Integer>> path : branch.paths.entrySet()) {
+                    branchPaths.put(entityUri + "\u0000" + path.getKey(), new BranchPath(roleUri, path.getValue()));
+                }
+            }
         }
-
-        // AGGIUNGIAMO L'IDENTITÀ PURA *SOLO* AL LIVELLO RADICE!
-        // Così il Mega-Vettore risuona con l'identità dell'entità, ma i suoi rami interni restano puliti.
-        macroBranches.add(pureIdentity);
-
-        if (macroBranches.size() % 2 == 0) {
-            macroBranches.add(memory.getOrGenerate("vsa:internal:parity_fix"));
-        }
-
-        HDVector rootVector = HDVectorMapB.bundleSimultaneous(macroBranches);
-        memory.saveTreeVector(entityUri, rootVector);
+        macroBranches.add(memory.getOrGenerate(entityUri));
+        if (macroBranches.size() % 2 == 0) macroBranches.add(HDVectorMapB.generateRandom(macroBranches));
+        memory.saveTreeVector(entityUri, HDVectorMapB.bundleSimultaneous(macroBranches));
     }
 
-    private HDVector buildSimpleChunk(List<Statement> triples, ItemMemory memory) {
-        List<HDVector> vectors = new ArrayList<>();
-        for (Statement s : triples) {
-            vectors.add(encodeTriple(s, memory));
+    private HDVector buildTripleTree(List<Statement> triples, ItemMemory memory) {
+        List<HDVector> level = new ArrayList<>();
+        for (Statement triple : triples) level.add(encodeTriple(triple, memory));
+        while (level.size() > chunkCapacity - 1) {
+            List<HDVector> parents = new ArrayList<>();
+            for (int start = 0; start < level.size(); start += chunkCapacity - 1) {
+                parents.add(encodeChunk(level.subList(start, Math.min(start + chunkCapacity - 1, level.size())), memory));
+            }
+            level = parents;
         }
-
-        // Lo StopVec di Simpkin delimita semanticamente la fine del Chunk
-        vectors.add(memory.getOrGenerate(V_STOP_URI));
-
-        if (vectors.size() % 2 == 0) vectors.add(HDVectorMapB.generateRandom());
-        return HDVectorMapB.bundleSimultaneous(vectors);
+        return encodeChunk(level, memory);
     }
 
-    private HDVector buildRecursiveSubTree(List<Statement> triples, ItemMemory memory) {
-        List<HDVector> subChunks = new ArrayList<>();
-        for (int i = 0; i < triples.size(); i += MAX_CHUNK_CAPACITY) {
-            int end = Math.min(i + MAX_CHUNK_CAPACITY, triples.size());
-            List<Statement> subList = triples.subList(i, end);
-
-            HDVector chunk = buildSimpleChunk(subList, memory);
-            subChunks.add(chunk.permute(i / MAX_CHUNK_CAPACITY + 1));
+    private HDVector encodeChunk(List<HDVector> content, ItemMemory memory) {
+        List<HDVector> terms = new ArrayList<>();
+        HDVector cumulativeRole = null;
+        for (int i = 0; i < content.size(); i++) {
+            HDVector role = memory.getOrGenerate(POSITION_URI + i);
+            cumulativeRole = cumulativeRole == null ? role : cumulativeRole.bind(role);
+            // Simpkin, eq. 5: Z_i^i moltiplicato per il prodotto cumulativo dei ruoli p_j.
+            terms.add(content.get(i).permute(i + 1).bind(cumulativeRole));
         }
-        if (subChunks.size() % 2 == 0) subChunks.add(HDVectorMapB.generateRandom());
-        return HDVectorMapB.bundleSimultaneous(subChunks);
+        HDVector stopRole = memory.getOrGenerate(POSITION_URI + content.size());
+        cumulativeRole = cumulativeRole == null ? stopRole : cumulativeRole.bind(stopRole);
+        terms.add(memory.getOrGenerate(V_STOP_URI).bind(cumulativeRole));
+        if (terms.size() % 2 == 0) terms.add(HDVectorMapB.generateRandom(terms));
+        return HDVectorMapB.bundleSimultaneous(terms);
+    }
+
+    public HDVector decodeChunkElement(HDVector chunk, int zeroBasedIndex, ItemMemory memory) {
+        HDVector cumulativeRole = memory.getOrGenerate(POSITION_URI + 0);
+        for (int i = 1; i <= zeroBasedIndex; i++)
+            cumulativeRole = cumulativeRole.bind(memory.getOrGenerate(POSITION_URI + i));
+        // Simpkin, eq. 5 e sez. III-A: invertire il ruolo e lo shift prima del clean-up.
+        return chunk.bind(cumulativeRole).permute(-(zeroBasedIndex + 1));
+    }
+
+    public HDVector recoverBranch(ItemMemory memory, String entityUri, String predicateUri) {
+        BranchPath path = branchPaths.get(entityUri + "\u0000" + predicateUri);
+        HDVector root = memory.getTreeVector(entityUri);
+        if (path == null)
+            return memory.cleanUpChunk(root.permute(-100).bind(memory.getOrGenerate(predicateUri)));
+
+        HDVector branch = memory.cleanUpChunk(root.permute(-100).bind(memory.getOrGenerate(path.rootRoleUri)));
+        if (branch == null) return null;
+        for (int step = 0; step < path.indices.size(); step++) {
+            branch = decodeChunkElement(branch, path.indices.get(step), memory);
+            if (step == path.indices.size() - 1)
+                branch = branch.bind(memory.getOrGenerate(predicateUri));
+            branch = memory.cleanUpChunk(branch);
+            if (branch == null) return null;
+        }
+        return branch;
     }
 
     private HDVector encodeTriple(Statement stmt, ItemMemory memory) {
-        HDVector vS = memory.getOrGenerate(stmt.getSubject().getURI());
-        HDVector vP = memory.getOrGenerate(stmt.getPredicate().getURI());
-        HDVector vO = stmt.getObject().isResource() ?
-                memory.getOrGenerate(stmt.getObject().asResource().getURI()) :
-                memory.getOrGenerate(stmt.getObject().asLiteral().getString());
-
-        // Pattern: S ⊗ P(1) ⊗ O(2)
-        return vS.bind(vP.permute(1)).bind(vO.permute(2));
+        HDVector subject = memory.getOrGenerate(stmt.getSubject().getURI());
+        HDVector predicate = memory.getOrGenerate(stmt.getPredicate().getURI());
+        HDVector object = stmt.getObject().isResource()
+                ? memory.getOrGenerate(stmt.getObject().asResource().getURI())
+                : memory.getOrGenerate(stmt.getObject().asLiteral().getString());
+        return subject.bind(predicate.permute(1)).bind(object.permute(2));
     }
+
+    private record BranchNode(HDVector vector, Map<String, List<Integer>> paths) { }
+    private record BranchPath(String rootRoleUri, List<Integer> indices) { }
 }

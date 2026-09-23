@@ -12,9 +12,15 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Strategia Neuro-Simbolica Reale:
- * Usa LangChain4j (all-MiniLM-L6-v2) per capire il significato,
+ * Usa LangChain4j per capire il significato,
  * e LSH per binarizzarlo nell'algebra HDC MAP-B.
  */
+/**
+ * @deprecated Not used in the current pipeline. Kept as reference for a
+ * future embedding-based vector generation strategy. The active strategy
+ * is {@link RandomGenerationStrategy}. See README "Roadmap".
+ */
+@Deprecated
 public class SemanticEmbeddingStrategy implements VectorGenerationStrategy {
 
     private final int embeddingDim;
@@ -26,7 +32,7 @@ public class SemanticEmbeddingStrategy implements VectorGenerationStrategy {
 
 
     public SemanticEmbeddingStrategy() {
-        // Inizializza il modello locale in-memory (pesa circa 22MB)
+        // Inizializza il modello locale in-memory
         this.embeddingModel = new OnnxEmbeddingModel("models/model.onnx");
         this.embeddingDim = 768; // Dimensione esatta prodotta da bge-base-en-v1.5
 
@@ -51,10 +57,10 @@ public class SemanticEmbeddingStrategy implements VectorGenerationStrategy {
         // prima di essere passata qui. Per ora, embeddiamo la stringa passata.
         String textToEmbed = cleanUriForEmbedding(uri);
 
-        // 1. Ottieni l'embedding denso reale (384-D)
+        // 1. Ottieni l'embedding denso reale (768-D)
         float[] denseEmbedding = fetchDenseEmbedding(textToEmbed);
 
-        // 2. Proiezione LSH -> 100.000-D Bipolare
+        // 2. Proiezione LSH -> 10.000-D Bipolare
         return binarize(denseEmbedding);
     }
 

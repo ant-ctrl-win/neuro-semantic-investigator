@@ -4,32 +4,23 @@ import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.query.*;
 import org.apache.jena.rdf.model.Model;
 
-import org.apache.jena.rdf.model.Resource;
-import org.apache.jena.rdf.model.RDFNode;
-import org.apache.jena.rdf.model.Statement;
-import org.apache.jena.rdf.model.StmtIterator;
-import java.util.stream.Stream;
-import java.util.ArrayList;
-import java.util.List;
-
 public class TripleExtractor {
 
     private static final String USER_AGENT = "neuro-semantic-investigator/0.1 (research; project@example.com)";
 
     /**
-     * Estrae le triple dal Knowledge Graph in modo BIDIREZIONALE (Multi-Hop di base).
+     * Estrae le triple dal Knowledge Graph in modo 1-hop outgoing.
      * Prende sia i Figli (frecce in uscita) che i Genitori (frecce in entrata).
      */
 
     // RIPRISTINIAMO L'ENUM PER MANTENERE LA COMPATIBILITÀ DEL CODICE
     public enum Direction {
         OUTGOING,
-        INCOMING,
-        BOTH
+        INCOMING
     }
 
     /**
-     * Il nuovo estrattore che fa Multi-Hop bidirezionale in un colpo solo.
+     * Estrae il sotto-grafo 1-hop outgoing.
      */
     public Model extractBidirectional(String endpointUrl, String entityUri) {
         Model model = ModelFactory.createDefaultModel();
