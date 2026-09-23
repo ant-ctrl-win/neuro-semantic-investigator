@@ -94,23 +94,29 @@ Se la similarità è inferiore, `App` cerca su Wikidata eventi o nodi collegati 
 
 ## 5. Ingestione del grafo RDF
 
-`InvestigationEngine.expandAndProcess` viene chiamato per la sorgente e per il target.
+`InvestigationEngine.expandAndProcess` è stato diviso in due fasi: `fetchOutgoing`
+esegue il fetch HTTP puro, mentre `processExpanded` codifica in VSA il grafo già
+presente nel modello locale. `expandAndProcess` resta come composizione delle due.
 
 Il flusso effettivo è:
 
 ```text
 URI dell'entità
     ↓
-TripleExtractor.extractBidirectional(...)
+TripleExtractor.extractBidirectional(...)  [fetch HTTP, in parallelo per sorgente e target]
     ↓
 query CONSTRUCT 1-hop outgoing
     ↓
-GraphManager.localModel
+GraphManager.localModel.add(...)  [inserimento sequenziale, Jena Model non è thread-safe]
+    ↓
+InvestigationEngine.processExpanded(...)
     ↓
 generazione degli atomici e costruzione degli alberi VSA
 ```
 
-Nonostante il nome `extractBidirectional`, la query corrente acquisisce solamente triple in uscita:
+Il fetch RDF delle due entità è parallelo (P2.1a), ma l'inserimento nel
+`localModel` resta sequenziale per thread-safety di Jena. Il nome
+`extractBidirectional` resta fuorviante, perché estrae solo triple in uscita:
 
 ```text
 <entità> ?predicato ?oggetto
@@ -249,6 +255,15 @@ decode(C,k) = ρ⁻¹(C ⊗ (p₀ ⊗ ... ⊗ pₖ), k+1)
 
 `recoverBranch` percorre l'albero dei rami fino al predicato richiesto. `recoverTriple` e `recoverTriples` percorrono poi l'albero dei valori.
 
+`recoverTriples` dispone di un overload che accetta il ramo già purificato:
+
+```java
+recoverTriples(memory, entityUri, predicateUri, precomputedBranch)
+```
+
+L'overload evita di ripercorrere `recoverBranch` due volte (fix P1.4). Il metodo
+a 3 argomenti resta come fallback e continua a calcolare internamente il ramo.
+
 A ogni passaggio:
 
 1. viene decodificata la posizione del figlio;
@@ -291,6 +306,10 @@ Nella demo il ruolo sorgente risultante è `author`.
 
 Il sistema raccoglie le proprietà del target e mantiene quelle che puntano a entità Wikidata. Le etichette vengono recuperate in batch.
 
+L'etichetta del ruolo sorgente viaggia nella stessa query `VALUES` delle
+etichette delle proprietà del target (fix P2.1b). Viene così risparmiata una
+chiamata remota dedicata.
+
 `OntologyTranslator` codifica:
 
 - l'etichetta del ruolo sorgente;
@@ -309,7 +328,7 @@ Questa fase usa il modello ONNX. La VSA continua invece a usare vettori bipolari
 Una volta noto il ruolo target:
 
 1. `recoverBranch` recupera il ramo puro del target;
-2. `recoverTriples` attraversa l'intero albero dei valori;
+2. `recoverTriples` viene chiamato con l'overload che riusa `pureTargetBranch` già recuperato al passo 1 (P1.4);
 3. soggetto e predicato vengono svincolati da ogni tripla;
 4. `ItemMemory.cleanUpRelativeTopK` confronta il risultato con la memoria atomica;
 5. per ogni URI viene mantenuto il punteggio migliore;
@@ -334,8 +353,15 @@ Il risultato della demo corrente è:
 | traduzione ruolo | soglia `0,60` | nessun ruolo target accettato |
 | ramo VSA | soglia strutturale 3σ | ramo rifiutato |
 | clean-up finale | memoria atomica e soglia dinamica | nessun candidato finale |
+| disponibilità Wikidata | endpoint pubblico | risposte 5xx transitorie, rate-limiting per IP |
 
 Il progetto non persiste la memoria tra esecuzioni. Grafo, vettori atomici, chunk, percorsi e radici vengono ricostruiti a ogni avvio.
+
+L'endpoint pubblico di Wikidata è soggetto a risposte `5xx` transitorie
+(es. `502 Bad Gateway`) e a rate-limiting per IP. Sotto carico, una
+singola esecuzione può richiedere decine di secondi o fallire la
+risoluzione delle etichette. Il sistema non maschera questi errori:
+i risultati possono variare tra esecuzioni e condizioni di rete.
 
 ## 16. Sequenza completa della demo
 
@@ -349,11 +375,18 @@ sequenceDiagram
     participant V as Memoria VSA
 
     U->>A: Amleto : Shakespeare = Lacrimosa : ?
-    A->>W: risoluzione delle tre entità
+    par 3 resolve in parallelo
+        A->>W: resolve(Amleto)
+        A->>W: resolve(Shakespeare)
+        A->>W: resolve(Lacrimosa)
+    end
     W-->>A: URI, classi, sitelink
     A->>E: confronto classi e reranking
     E-->>A: target Requiem
-    A->>W: triple outgoing di Amleto e Requiem
+    par 2 fetch RDF in parallelo
+        A->>W: CONSTRUCT outgoing Amleto
+        A->>W: CONSTRUCT outgoing Requiem
+    end
     W-->>G: modelli RDF 1-hop
     G->>V: atomici, triple, chunk e alberi
     A->>V: cerca William Shakespeare nei rami di Amleto
@@ -365,3 +398,19 @@ sequenceDiagram
     A->>W: etichette dei candidati finali
     W-->>U: Süssmayr, Mozart
 ```
+
+## 17. Profilo prestazioni
+
+Il sistema separa il calcolo strutturale (VSA) dalla rete:
+
+- **VSA** (STEP 1 + STEP 3&4): ~40 ms totali. La deduzione del ruolo
+  sorgente e l'estrazione del target sono operazioni in memoria su
+  vettori bipolari, non dominano il tempo di esecuzione.
+- **Rete**: 7 richieste Wikidata, near-minimal. Il minimo teorico è 6;
+  la settima è il batch di etichette dei candidati finali, non
+  fondibile perché i candidati esistono solo dopo la proiezione VSA.
+- **Demo end-to-end**: tipicamente 7–15 s su rete domestica, con picchi
+  fino a 50 s o più quando Wikidata è lenta o applica rate-limiting.
+  Il tempo totale è dominato dalla latenza del provider.
+
+Le metriche di fase sono stampate a fine esecuzione dalla CLI.

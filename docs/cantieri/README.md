@@ -12,3 +12,4 @@ contesto, diff, output di verifica, esito.
 - [P2.1a_parallelizzazione.md](P2.1a_parallelizzazione.md) — Parallelizzazione fasi remote
 - [P2.1b_label_e_vsa.md](P2.1b_label_e_vsa.md) — Riduzione label calls + misura VSA
 - [README_update.md](README_update.md) — Aggiornamento README post-P2.1b
+- [FLUSSO_DATI_update.md](FLUSSO_DATI_update.md) — Allineamento FLUSSO_DATI post-P2.1b
