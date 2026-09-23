@@ -370,11 +370,7 @@ saved between sessions.
 - Kanerva, P. (2009). *Hyperdimensional Computing: An Introduction to
   Computing in Distributed Representation with High-Dimensional Random
   Vectors.* Cognitive Computation, 1(2), 139–159.
-- Neubert, P., Schubert, S., & Protzel, P. (2019). *An Introduction to
-  Hyperdimensional Computing for Robotics.* Chemnitz University of
-  Technology.
-- Karunaratne, G. et al. (2021). *Robust High-dimensional Memory-augmented
-  Neural Networks.* IBM Research – Zurich.
+
 
 ---
 
