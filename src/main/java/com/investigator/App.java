@@ -164,9 +164,9 @@ public class App {
             HDVector cleanBranch = topologicalUpdater.recoverBranch(itemMemory, apollo11Uri, propUri);
 
             if (cleanBranch != null) {
-                int count = localModel.listStatements(apolloResource, prop, (RDFNode) null).toList().size();
-                for (int index = 0; index < count; index++) {
-                    HDVector triple = topologicalUpdater.decodeChunkElement(cleanBranch, index, itemMemory);
+                // Simpkin, sez. III-A: l'API percorre la gerarchia dei chunk
+                // invece di assumere che tutte le triple siano nella radice.
+                for (HDVector triple : topologicalUpdater.recoverTriples(itemMemory, apollo11Uri, propUri)) {
                     HDVector noisyObject = triple.bind(subjectVector).bind(candidateRole.permute(1)).permute(-2);
                     double rawSimilarity = noisyObject.similarity(armstrongVector);
                     allHypotheses.add(new Hypothesis(propUri, rawSimilarity));
@@ -272,21 +272,23 @@ public class App {
         if (pureTargetBranch == null) {
             System.out.println("\n[!] FALLIMENTO: Il ramo semantico si è perso nel rumore (Z-Score sotto soglia).");
             System.out.println("    [Logica Applicata]: " + sourceRoleLabel + " ===> " + targetRoleLabel);
-            System.out.println("    [Confidenza VSA Ramo]: " + String.format("%.2f", itemMemory.getLastBestSigma()) + " σ");
+            System.out.println("    [Confidenza VSA Ramo]: "
+                    + String.format("%.2f", topologicalUpdater.getLastStructuralSigma()) + " σ");
             return;
         }
 
-        System.out.println("   -> Ramo recuperato con successo! Z-Score Ramo: " + String.format("%.2f", itemMemory.getLastBestSigma()) + " σ");
+        System.out.println("   -> Ramo recuperato con successo! Z-Score Ramo: "
+                + String.format("%.2f", topologicalUpdater.getLastStructuralSigma()) + " σ");
         System.out.println("   -> Svincolo l'oggetto dal ramo purificato...");
 
         // ==========================================
         // FASE 2: Estrazione dell'Oggetto dal Ramo Puro (posizione per posizione)
         // ==========================================
-        int targetCount = localModel.listStatements(targetResource, localModel.getProperty(targetRoleUri), (RDFNode) null).toList().size();
         Map<String, ItemMemory.ScoredMatch> candidateMap = new LinkedHashMap<>();
 
-        for (int index = 0; index < targetCount; index++) {
-            HDVector triple = topologicalUpdater.decodeChunkElement(pureTargetBranch, index, itemMemory);
+        // Simpkin, sez. III-A: la cardinalità e la profondità provengono
+        // dall'albero costruito, non dal tentativo di leggere una radice piatta.
+        for (HDVector triple : topologicalUpdater.recoverTriples(itemMemory, currentTargetUri, targetRoleUri)) {
             HDVector noisyTargetObject = triple.bind(targetSubject).bind(targetRole.permute(1)).permute(-2);
             List<ItemMemory.ScoredMatch> positionCandidates = itemMemory.cleanUpRelativeTopK(noisyTargetObject, 3);
             for (ItemMemory.ScoredMatch match : positionCandidates) {

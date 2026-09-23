@@ -53,6 +53,52 @@ class TopologicalVectorUpdaterTest {
         assertEquals(89, TopologicalVectorUpdater.capacityForSigma(3));
     }
 
+    @Test
+    void branchesBelowChunkCapacityAreRecoveredWithoutDoubleBinding() {
+        for (int propertyCount : new int[]{1, 5, 29}) {
+            Model model = modelWithProperties(propertyCount);
+            Resource node = model.getResource(SUBJECT);
+            TopologicalVectorUpdater updater = new TopologicalVectorUpdater();
+            ItemMemory memory = new ItemMemory(new RandomGenerationStrategy());
+
+            updater.applyTopologicalUpdate(memory, model, Set.of(node));
+
+            for (int index : new int[]{0, propertyCount - 1}) {
+                String predicate = "urn:test:property:" + String.format("%03d", index);
+                assertNotNull(updater.recoverBranch(memory, SUBJECT, predicate),
+                        "Ramo diretto non recuperato con " + propertyCount + " predicati: " + predicate);
+            }
+        }
+    }
+
+    @Test
+    void hundredObjectsAreRecoveredThroughTheRecursiveValueTree() {
+        String predicate = "urn:test:property:many";
+        Model model = ModelFactory.createDefaultModel();
+        Resource node = model.createResource(SUBJECT);
+        for (int i = 99; i >= 0; i--) {
+            node.addProperty(model.createProperty(predicate), model.createResource("urn:test:many-object:" + i));
+        }
+        // Simpkin, sez. III-A: capacità 30 crea due livelli; capacità 5
+        // forza quattro livelli e verifica che la discesa sia realmente ricorsiva.
+        for (int capacity : new int[]{30, 5}) {
+            TopologicalVectorUpdater updater = new TopologicalVectorUpdater(capacity);
+            ItemMemory memory = new ItemMemory(new RandomGenerationStrategy());
+            updater.applyTopologicalUpdate(memory, model, Set.of(node));
+
+            for (int index : new int[]{0, 28, 29, 99}) {
+                HDVector triple = updater.recoverTriple(memory, SUBJECT, predicate, index);
+                assertNotNull(triple, "Tripla non recuperata alla posizione " + index
+                        + " con capacità " + capacity);
+                HDVector object = triple.bind(memory.getOrGenerate(SUBJECT))
+                        .bind(memory.getOrGenerate(predicate).permute(1)).permute(-2);
+                String expectedUri = sortedManyObjectUri(index);
+                assertTrue(object.similarity(memory.getOrGenerate(expectedUri)) > 0.25,
+                        "Oggetto perso alla posizione " + index + ": " + expectedUri);
+            }
+        }
+    }
+
     private Model modelWithProperties(int count) {
         Model model = ModelFactory.createDefaultModel();
         Resource node = model.createResource(SUBJECT);
@@ -61,5 +107,13 @@ class TopologicalVectorUpdaterTest {
                     model.createResource("urn:test:object:" + i));
         }
         return model;
+    }
+
+    private String sortedManyObjectUri(int index) {
+        return java.util.stream.IntStream.range(0, 100)
+                .mapToObj(i -> "urn:test:many-object:" + i)
+                .sorted()
+                .toList()
+                .get(index);
     }
 }
