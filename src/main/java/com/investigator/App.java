@@ -228,6 +228,7 @@ public class App {
         record Hypothesis(String propUri, double rawSimilarity) {}
         List<Hypothesis> allHypotheses = new ArrayList<>();
 
+        long vsaStep1Start = System.nanoTime();
         for (Property prop : apolloProps) {
             String propUri = prop.getURI();
             if (isMetadata(propUri)) continue;
@@ -245,6 +246,7 @@ public class App {
                 }
             }
         }
+        phaseTimings.put("STEP 1 — deduzione ruolo sorgente (VSA)", (System.nanoTime() - vsaStep1Start) / 1_000_000.0);
 
         // Calcola μ e σ sulla distribuzione osservata
         double mean = 0.0;
@@ -283,18 +285,17 @@ public class App {
         }
 
 
-        long labelSourceStart = System.nanoTime();
-        String sourceRoleLabel = fetchLabelFromWikidata(sourceRoleUri);
-        phaseTimings.put("Label ruolo sorgente", (System.nanoTime() - labelSourceStart) / 1_000_000.0);
-        System.out.printf("   -> DEDUZIONE COMPLETATA: L'oggetto è legato tramite '%s' (z=%.2fσ)\n", sourceRoleLabel, bestSigma);
-
         System.out.println("\n=======================================================");
         System.out.println("   STEP 2: IL PONTE ANALOGICO (Embedding + Filtro Strutturale) ");
         System.out.println("=======================================================");
 
         long propertyInventoryStart = System.nanoTime();
-        Map<String, String> allTargetProperties = extractPropertyLabels(targetResource, localModel);
+        PropertyInventory inventory = extractPropertyLabels(targetResource, localModel, sourceRoleUri);
         phaseTimings.put("Inventario proprietà + batch label", (System.nanoTime() - propertyInventoryStart) / 1_000_000.0);
+        Map<String, String> allTargetProperties = inventory.labels();
+        String sourceRoleLabel = inventory.sourceRoleLabel();
+        System.out.printf("   -> DEDUZIONE COMPLETATA: L'oggetto è legato tramite '%s' (z=%.2fσ)\n", sourceRoleLabel, bestSigma);
+
         Map<String, String> targetProperties = new HashMap<>();
 
         System.out.println("   [FILTRO STRUTTURALE RDF] Scrematura delle proprietà incompatibili...");
@@ -331,9 +332,14 @@ public class App {
             System.out.println("   [ERRORE] Il traduttore non ha trovato un equivalente per '" + sourceRoleLabel + "'. Analogia fallita.");
             return;
         }
-        long labelTargetStart = System.nanoTime();
-        String targetRoleLabel = fetchLabelFromWikidata(targetRoleUri);
-        phaseTimings.put("Label ruolo target", (System.nanoTime() - labelTargetStart) / 1_000_000.0);
+        // Riuso della label già recuperata nella batch dell'inventario target:
+        // targetRoleUri proviene da targetProperties, sottoinsieme di allTargetProperties.
+        String targetRoleLabel = allTargetProperties.get(targetRoleUri);
+        if (targetRoleLabel == null) {
+            long labelTargetStart = System.nanoTime();
+            targetRoleLabel = fetchLabelFromWikidata(targetRoleUri);
+            phaseTimings.put("Label ruolo target (fallback)", (System.nanoTime() - labelTargetStart) / 1_000_000.0);
+        }
 
         System.out.println("\n=======================================================");
         System.out.println("    STEP 3 & 4: PROIEZIONE E ESTRAZIONE TARGET (VSA)    ");
@@ -366,6 +372,7 @@ public class App {
 
         // Simpkin, sez. III-A: la cardinalità e la profondità provengono
         // dall'albero costruito, non dal tentativo di leggere una radice piatta.
+        long vsaStep34Start = System.nanoTime();
         for (HDVector triple : topologicalUpdater.recoverTriples(itemMemory, currentTargetUri, targetRoleUri, pureTargetBranch)) {
             HDVector noisyTargetObject = triple.bind(targetSubject).bind(targetRole.permute(1)).permute(-2);
             List<ItemMemory.ScoredMatch> positionCandidates = itemMemory.cleanUpRelativeTopK(noisyTargetObject, 3);
@@ -376,6 +383,7 @@ public class App {
                 }
             }
         }
+        phaseTimings.put("STEP 3&4 — proiezione ed estrazione target (VSA)", (System.nanoTime() - vsaStep34Start) / 1_000_000.0);
 
         List<ItemMemory.ScoredMatch> topCandidates = candidateMap.values().stream()
                 .sorted((a, b) -> Double.compare(b.sigma(), a.sigma()))
@@ -420,7 +428,9 @@ public class App {
         System.out.printf("   %-46s %10.1f ms%n", "TOTALE (sequenziali + gruppi paralleli)", measuredTotal);
     }
 
-    private static Map<String, String> extractPropertyLabels(Resource entity, Model localGraph) {
+    private record PropertyInventory(Map<String, String> labels, String sourceRoleLabel) {}
+
+    private static PropertyInventory extractPropertyLabels(Resource entity, Model localGraph, String sourceRoleUri) {
         Set<Property> outgoingProps = new HashSet<>();
         Set<Property> incomingProps = new HashSet<>();
 
@@ -439,6 +449,12 @@ public class App {
             String uri = prop.getURI();
             if (isMetadata(uri) || !uri.contains("/direct/")) continue;
             allUris.add(uri);
+        }
+        // La label del ruolo sorgente viaggia nella stessa batch VALUES del target:
+        // risparmia una chiamata remota dedicata (P2.1b).
+        boolean sourceIsWikidata = sourceRoleUri != null && sourceRoleUri.startsWith("http://www.wikidata.org/");
+        if (sourceIsWikidata) {
+            allUris.add(sourceRoleUri);
         }
 
         Map<String, String> labelCache = batchFetchLabels(allUris);
@@ -464,7 +480,16 @@ public class App {
             System.out.println("      - [IN]  " + uri + "  --->  Label: '" + labels.get(uri) + "'");
         }
 
-        return labels;
+        String sourceRoleLabel;
+        if (sourceIsWikidata) {
+            sourceRoleLabel = labelCache.getOrDefault(sourceRoleUri, sourceRoleUri.replace("_", " "));
+        } else if (sourceRoleUri != null) {
+            sourceRoleLabel = sourceRoleUri.replace("_", " ");
+        } else {
+            sourceRoleLabel = null;
+        }
+
+        return new PropertyInventory(labels, sourceRoleLabel);
     }
 
     private static String fetchLabelFromWikidata(String uri) {
