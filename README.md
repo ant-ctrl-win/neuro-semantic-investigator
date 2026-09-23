@@ -153,8 +153,9 @@ The engine separates structural computation from remote retrieval:
   minimum is 6; the seventh is the batch label for final candidates,
   which cannot be merged because candidates only exist after the VSA
   projection.
-- **End-to-end demo**: ~6–7 s on a domestic connection, dominated by
-  Wikidata latency.
+- **End-to-end demo**: typically 7–15 s on a domestic connection, but
+  it can reach 50 s or more when Wikidata is slow or rate-limiting.
+  Runtime is dominated by Wikidata latency, not by VSA computation.
 
 Per-stage timings are printed at the end of every CLI run.
 
@@ -395,11 +396,13 @@ Results depend on live Wikidata content and availability. Semantic role
 alignment requires the local ONNX model and tokenizer. Console output is
 currently in Italian.
 
-### Transient Wikidata errors
+### Wikidata availability and rate-limiting
 
-Occasional `5xx` responses (e.g. `502 Bad Gateway`) from the Wikidata
-endpoint can degrade label resolution and change the outcome of a run.
-The system does not mask these errors; results may vary between runs.
+The public Wikidata endpoint is subject to transient `5xx` responses
+(e.g. `502 Bad Gateway`) and to per-IP rate-limiting. Under load, a
+single run can take tens of seconds or fail to resolve labels. The
+system does not mask these errors: results may vary between runs and
+across network conditions.
 
 ---
 

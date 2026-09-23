@@ -246,3 +246,8 @@ index 4dc2843..45e6435 100644
   (`- [README_update.md](README_update.md) — Aggiornamento README post-P2.1b`).
   Convenzione confermata per i cantieri futuri (FLUSSO_DATI update,
   STATO_LAVORI update).
+
+## 7. Nota post-commit (amend)
+
+Amended after observed network variance (7-50s range) and Wikidata
+rate-limiting behaviour.
