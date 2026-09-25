@@ -13,6 +13,8 @@ public class GraphManager {
     private final SparqlEndpoint sparqlEndpoint;
     private final TripleExtractor tripleExtractor;
 
+    private static final String WIKIDATA_ENDPOINT = "https://query.wikidata.org/sparql";
+
     public GraphManager(SparqlEndpoint sparqlEndpoint, TripleExtractor tripleExtractor) {
         this.localModel = ModelFactory.createDefaultModel();
         this.sparqlEndpoint = sparqlEndpoint;
@@ -25,8 +27,7 @@ public class GraphManager {
         System.out.println("   [GraphManager] 1-hop expansion: " + node.getURI());
 
         // Passiamo direttamente la richiesta al nuovo motore di estrazione
-        Model remoteModel = tripleExtractor.extractBidirectional("https://query.wikidata.org/sparql", node.getURI());
-
+        Model remoteModel = tripleExtractor.extractBidirectional(WIKIDATA_ENDPOINT, node.getURI());
         localModel.add(remoteModel);
     }
 
@@ -39,7 +40,7 @@ public class GraphManager {
     }
 
     public Model fetchOutgoing(Resource node) {
-        return tripleExtractor.extractBidirectional("https://query.wikidata.org/sparql", node.getURI());
+        return tripleExtractor.extractBidirectional(WIKIDATA_ENDPOINT, node.getURI());
     }
 
     public void addRemoteModel(Model remoteModel) {
