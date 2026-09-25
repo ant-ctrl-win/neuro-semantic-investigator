@@ -464,3 +464,24 @@ index 19f0093..5eeafe1 100644
 - Demo Amleto: #1 Franz Xaver Süssmayr 30,86σ, #2 Wolfgang Amadeus
   Mozart 30,85σ.
 - Commit citati: `0ed54c7`, `ada1775`, `8a1e1be`, `cb32edc`, `ac0d444`.
+
+
+## Verifica demo Nile (post-chiusura)
+
+Data: 24/09/2029
+Query: `Nile : Egypt = Mont Blanc : ?`
+
+Esito: coincide con i valori pubblicati nel README.
+- Ruolo sorgente: `country` (z = 8.95σ)
+- Ruolo target: `country`
+- Ramo: 15.58σ
+- #1 France 34.00σ
+- #2 Italy 33.85σ
+
+Osservazione: nel run di verifica una delle tre resolve ha impiegato
+~78 s (rate-limiting o picco di latenza), trascinando il wall del
+gruppo parallelo. Comportamento atteso con `CompletableFuture.join()`:
+il wall è la chiamata più lenta. Ipotesi da verificare in futuro: le
+3 resolve in parallelo potrebbero essere più soggette al rate-limiting
+di Wikidata rispetto a 3 resolve sequenziali. Non bloccante, non
+verificato, va nel backlog osservativo.
