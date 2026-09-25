@@ -430,10 +430,20 @@ The immediate work is intentionally narrower than a product roadmap:
   Chunking for Decentralized Workflows.* IEEE International Conference
   on Semantic Computing (ICSC). — *Foundational reference for the
   hierarchical chunking scheme implemented in this project.*
-- Kanerva, P. (2009). *Hyperdimensional Computing: An Introduction to
-  Computing in Distributed Representation with High-Dimensional Random
-  Vectors.* Cognitive Computation, 1(2), 139–159.
-
+- Gayler, R. W. (2003). *Vector Symbolic Architectures answer
+  Jackendoff's challenges for cognitive neuroscience.* In Proceedings
+  of the Joint International Conference on Cognitive Science
+  (ICCS/ASCS'03), 133–138. University of New South Wales, Sydney.
+  arXiv:cs/0412059 — *Foundational reference for Vector Symbolic
+  Architectures.*
+- Schlegel, K., Neubert, P., & Protzel, P. (2022). *A comparison of
+  vector symbolic architectures.* Artificial Intelligence Review, 55,
+  4523–4555. — *Reference for the MAP-B binary model used in this
+  project.*
+- Kanerva, P. (2009). *Hyperdimensional Computing: An Introduction
+  to Computing in Distributed Representation with High-Dimensional
+  Random Vectors.* Cognitive Computation, 1(2), 139–159. — *Background
+  on hyperdimensional computing.*
 
 ---
 
