@@ -10,9 +10,12 @@ public class TopologicalVectorUpdater {
     private static final int DEFAULT_CHUNK_CAPACITY = 30;
     private static final String V_STOP_URI = "vsa:internal:stop";
     private static final String POSITION_URI = "vsa:internal:position:";
+    private static final double MIN_STRUCTURAL_SIMILARITY = 3.0 / Math.sqrt(HDVectorMapB.D);
 
     private final int chunkCapacity;
     private final Map<String, BranchPath> branchPaths = new HashMap<>();
+    private final Map<String, ValueNode> valueTrees = new HashMap<>();
+    private double lastStructuralSigma;
 
     public TopologicalVectorUpdater() {
         this(DEFAULT_CHUNK_CAPACITY);
@@ -39,6 +42,7 @@ public class TopologicalVectorUpdater {
         String entityUri = node.getURI();
         // Simpkin, fig. 1: i percorsi seguono l'albero corrente dopo ogni aggiornamento.
         branchPaths.keySet().removeIf(key -> key.startsWith(entityUri + "\u0000"));
+        valueTrees.keySet().removeIf(key -> key.startsWith(entityUri + "\u0000"));
         List<Statement> statements = model.listStatements(node, null, (RDFNode) null).toList();
         Map<Property, List<Statement>> buckets = new LinkedHashMap<>();
         statements.stream().sorted(Comparator.comparing((Statement s) -> s.getPredicate().getURI())
@@ -48,7 +52,10 @@ public class TopologicalVectorUpdater {
         List<BranchNode> nodes = new ArrayList<>();
         for (Map.Entry<Property, List<Statement>> entry : buckets.entrySet()) {
             String predicateUri = entry.getKey().getURI();
-            HDVector branch = buildTripleTree(entry.getValue(), memory);
+            ValueNode valueTree = buildTripleTree(entry.getValue(), memory,
+                    entityUri + ":value-tree:" + predicateUri);
+            HDVector branch = valueTree.vector;
+            valueTrees.put(treeKey(entityUri, predicateUri), valueTree);
             memory.saveChunkVector(entityUri + ":chunk:" + predicateUri, branch);
             nodes.add(new BranchNode(branch.bind(memory.getOrGenerate(predicateUri)),
                     Map.of(predicateUri, List.of())));
@@ -63,13 +70,13 @@ public class TopologicalVectorUpdater {
                 List<BranchNode> children = nodes.subList(start, Math.min(start + chunkCapacity - 1, nodes.size()));
                 HDVector group = encodeChunk(children.stream().map(child -> child.vector).toList(), memory);
                 memory.saveChunkVector(entityUri + ":branch-level:" + level + ":" + parents.size(), group);
-                Map<String, List<Integer>> paths = new HashMap<>();
+                Map<String, List<BranchStep>> paths = new HashMap<>();
                 for (int i = 0; i < children.size(); i++) {
-                    for (Map.Entry<String, List<Integer>> path : children.get(i).paths.entrySet()) {
-                        List<Integer> indices = new ArrayList<>();
-                        indices.add(i);
-                        indices.addAll(path.getValue());
-                        paths.put(path.getKey(), List.copyOf(indices));
+                    for (Map.Entry<String, List<BranchStep>> path : children.get(i).paths.entrySet()) {
+                        List<BranchStep> steps = new ArrayList<>();
+                        steps.add(new BranchStep(i, children.get(i).vector));
+                        steps.addAll(path.getValue());
+                        paths.put(path.getKey(), List.copyOf(steps));
                     }
                 }
                 parents.add(new BranchNode(group, paths));
@@ -82,10 +89,16 @@ public class TopologicalVectorUpdater {
         for (int i = 0; i < nodes.size(); i++) {
             BranchNode branch = nodes.get(i);
             String roleUri = grouped ? entityUri + ":branch-root:" + i : branch.paths.keySet().iterator().next();
-            macroBranches.add(branch.vector.bind(memory.getOrGenerate(roleUri)).permute(100));
+            HDVector rootTerm = grouped
+                    ? branch.vector.bind(memory.getOrGenerate(roleUri))
+                    : branch.vector;
+            // Simpkin, sez. III-A: il ramo foglia contiene già il ruolo-predicato;
+            // un secondo binding lo annullerebbe nei binary spatter codes.
+            macroBranches.add(rootTerm.permute(100));
             if (grouped) {
-                for (Map.Entry<String, List<Integer>> path : branch.paths.entrySet()) {
-                    branchPaths.put(entityUri + "\u0000" + path.getKey(), new BranchPath(roleUri, path.getValue()));
+                for (Map.Entry<String, List<BranchStep>> path : branch.paths.entrySet()) {
+                    branchPaths.put(treeKey(entityUri, path.getKey()),
+                            new BranchPath(roleUri, branch.vector, path.getValue()));
                 }
             }
         }
@@ -94,17 +107,28 @@ public class TopologicalVectorUpdater {
         memory.saveTreeVector(entityUri, HDVectorMapB.bundleSimultaneous(macroBranches));
     }
 
-    private HDVector buildTripleTree(List<Statement> triples, ItemMemory memory) {
-        List<HDVector> level = new ArrayList<>();
-        for (Statement triple : triples) level.add(encodeTriple(triple, memory));
+    private ValueNode buildTripleTree(List<Statement> triples, ItemMemory memory, String chunkPrefix) {
+        List<ValueNode> level = new ArrayList<>();
+        for (Statement triple : triples)
+            level.add(new ValueNode(encodeTriple(triple, memory), List.of(), 1));
+        int treeLevel = 0;
         while (level.size() > chunkCapacity - 1) {
-            List<HDVector> parents = new ArrayList<>();
+            List<ValueNode> parents = new ArrayList<>();
             for (int start = 0; start < level.size(); start += chunkCapacity - 1) {
-                parents.add(encodeChunk(level.subList(start, Math.min(start + chunkCapacity - 1, level.size())), memory));
+                List<ValueNode> children = List.copyOf(
+                        level.subList(start, Math.min(start + chunkCapacity - 1, level.size())));
+                HDVector vector = encodeChunk(children.stream().map(child -> child.vector).toList(), memory);
+                memory.saveChunkVector(chunkPrefix + ":level:" + treeLevel + ":" + parents.size(), vector);
+                parents.add(new ValueNode(vector, children,
+                        children.stream().mapToInt(child -> child.leafCount).sum()));
             }
             level = parents;
+            treeLevel++;
         }
-        return encodeChunk(level, memory);
+        HDVector root = encodeChunk(level.stream().map(child -> child.vector).toList(), memory);
+        // Simpkin, sez. III-A e fig. 1: la radice conserva i figli per rendere
+        // percorribili tutti i livelli creati dalla partizione ricorsiva.
+        return new ValueNode(root, List.copyOf(level), triples.size());
     }
 
     private HDVector encodeChunk(List<HDVector> content, ItemMemory memory) {
@@ -132,21 +156,100 @@ public class TopologicalVectorUpdater {
     }
 
     public HDVector recoverBranch(ItemMemory memory, String entityUri, String predicateUri) {
-        BranchPath path = branchPaths.get(entityUri + "\u0000" + predicateUri);
+        BranchPath path = branchPaths.get(treeKey(entityUri, predicateUri));
+        ValueNode expectedTree = valueTrees.get(treeKey(entityUri, predicateUri));
+        if (expectedTree == null) return null;
         HDVector root = memory.getTreeVector(entityUri);
-        if (path == null)
-            return memory.cleanUpChunk(root.permute(-100).bind(memory.getOrGenerate(predicateUri)));
+        if (path == null) {
+            HDVector noisyBranch = root.permute(-100).bind(memory.getOrGenerate(predicateUri));
+            return cleanUpExpected(noisyBranch, expectedTree.vector);
+        }
 
-        HDVector branch = memory.cleanUpChunk(root.permute(-100).bind(memory.getOrGenerate(path.rootRoleUri)));
+        HDVector branch = cleanUpExpected(
+                root.permute(-100).bind(memory.getOrGenerate(path.rootRoleUri)), path.rootVector);
         if (branch == null) return null;
-        for (int step = 0; step < path.indices.size(); step++) {
-            branch = decodeChunkElement(branch, path.indices.get(step), memory);
-            if (step == path.indices.size() - 1)
+        for (int index = 0; index < path.steps.size(); index++) {
+            BranchStep step = path.steps.get(index);
+            branch = decodeChunkElement(branch, step.index, memory);
+            if (index == path.steps.size() - 1) {
                 branch = branch.bind(memory.getOrGenerate(predicateUri));
-            branch = memory.cleanUpChunk(branch);
+                branch = cleanUpExpected(branch, expectedTree.vector);
+            } else {
+                branch = cleanUpExpected(branch, step.expectedVector);
+            }
             if (branch == null) return null;
         }
         return branch;
+    }
+
+    public HDVector recoverTriple(ItemMemory memory, String entityUri, String predicateUri, int zeroBasedIndex) {
+        ValueNode tree = valueTrees.get(treeKey(entityUri, predicateUri));
+        if (tree == null || zeroBasedIndex < 0 || zeroBasedIndex >= tree.leafCount) return null;
+        HDVector branch = recoverBranch(memory, entityUri, predicateUri);
+        if (branch == null) return null;
+        return recoverTripleFromTree(branch, tree, zeroBasedIndex, memory);
+    }
+
+    public List<HDVector> recoverTriples(ItemMemory memory, String entityUri, String predicateUri) {
+        ValueNode tree = valueTrees.get(treeKey(entityUri, predicateUri));
+        if (tree == null) return List.of();
+        HDVector branch = recoverBranch(memory, entityUri, predicateUri);
+        if (branch == null) return List.of();
+        List<HDVector> triples = new ArrayList<>(tree.leafCount);
+        for (int index = 0; index < tree.leafCount; index++) {
+            HDVector triple = recoverTripleFromTree(branch, tree, index, memory);
+            if (triple != null) triples.add(triple);
+        }
+        return List.copyOf(triples);
+    }
+
+    public List<HDVector> recoverTriples(
+            ItemMemory memory, String entityUri, String predicateUri, HDVector precomputedBranch) {
+        ValueNode tree = valueTrees.get(treeKey(entityUri, predicateUri));
+        if (tree == null || precomputedBranch == null) return List.of();
+        List<HDVector> triples = new ArrayList<>(tree.leafCount);
+        for (int index = 0; index < tree.leafCount; index++) {
+            HDVector triple = recoverTripleFromTree(precomputedBranch, tree, index, memory);
+            if (triple != null) triples.add(triple);
+        }
+        return List.copyOf(triples);
+    }
+
+    private HDVector recoverTripleFromTree(
+            HDVector currentVector, ValueNode currentNode, int zeroBasedIndex, ItemMemory memory) {
+        int remaining = zeroBasedIndex;
+        while (!currentNode.children.isEmpty()) {
+            int childIndex = 0;
+            while (remaining >= currentNode.children.get(childIndex).leafCount) {
+                remaining -= currentNode.children.get(childIndex).leafCount;
+                childIndex++;
+            }
+            ValueNode child = currentNode.children.get(childIndex);
+            HDVector decoded = decodeChunkElement(currentVector, childIndex, memory);
+            if (child.children.isEmpty()) return cleanUpExpected(decoded, child.vector);
+            // Simpkin, sez. III-A: dopo ogni discesa il clean-up strutturale
+            // ripristina il sotto-chunk puro prima di decodificare il livello seguente.
+            currentVector = cleanUpExpected(decoded, child.vector);
+            if (currentVector == null) return null;
+            currentNode = child;
+        }
+        return null;
+    }
+
+    private HDVector cleanUpExpected(HDVector noisyVector, HDVector expectedVector) {
+        double similarity = noisyVector.similarity(expectedVector);
+        // Simpkin, sez. III-A: per BSC casuali σ(similarità)=1/√D;
+        // questo rende confrontabile il clean-up strutturale con la soglia a 3σ.
+        lastStructuralSigma = similarity * Math.sqrt(HDVectorMapB.D);
+        return similarity >= MIN_STRUCTURAL_SIMILARITY ? expectedVector : null;
+    }
+
+    public double getLastStructuralSigma() {
+        return lastStructuralSigma;
+    }
+
+    private String treeKey(String entityUri, String predicateUri) {
+        return entityUri + "\u0000" + predicateUri;
     }
 
     private HDVector encodeTriple(Statement stmt, ItemMemory memory) {
@@ -158,6 +261,8 @@ public class TopologicalVectorUpdater {
         return subject.bind(predicate.permute(1)).bind(object.permute(2));
     }
 
-    private record BranchNode(HDVector vector, Map<String, List<Integer>> paths) { }
-    private record BranchPath(String rootRoleUri, List<Integer> indices) { }
+    private record ValueNode(HDVector vector, List<ValueNode> children, int leafCount) { }
+    private record BranchStep(int index, HDVector expectedVector) { }
+    private record BranchNode(HDVector vector, Map<String, List<BranchStep>> paths) { }
+    private record BranchPath(String rootRoleUri, HDVector rootVector, List<BranchStep> steps) { }
 }
